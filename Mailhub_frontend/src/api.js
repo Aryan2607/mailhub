@@ -1,5 +1,5 @@
 // API Service for MailHub Backend
-const rawBase = 'http://127.0.0.1:8000'
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const API_BASE = (rawBase ? rawBase.replace(/\/+$/, '') : '') + '/api/v1';
 
 // Token Management
