@@ -18,7 +18,11 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-multi-gmail-hub-super-secr
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+raw_allowed = os.getenv('ALLOWED_HOSTS', '*')
+if raw_allowed == '*' or raw_allowed.strip() == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [h.strip() for h in raw_allowed.split(',') if h.strip()]
 
 # Application definition
 INSTALLED_APPS = [
@@ -157,14 +161,31 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings for React frontend
-CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-]
+raw_cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if raw_cors:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in raw_cors.split(',') if origin.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ]
+
+# Automatically trust FRONTEND_URL if specified
+frontend_url_env = os.getenv('FRONTEND_URL', 'http://localhost:5173').strip()
+if frontend_url_env and frontend_url_env not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(frontend_url_env)
+
+CORS_ALLOW_ALL_ORIGINS = DEBUG or os.getenv('CORS_ALLOW_ALL', 'False').lower() in ('true', '1')
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Trusted Origins for modern Django security
+raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if raw_csrf:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf.split(',') if origin.strip()]
+elif frontend_url_env:
+    CSRF_TRUSTED_ORIGINS = [frontend_url_env]
 
 # Google OAuth 2.0 Settings
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')

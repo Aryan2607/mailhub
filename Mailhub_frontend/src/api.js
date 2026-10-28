@@ -1,6 +1,6 @@
 // API Service for MailHub Backend
-
-const API_BASE = '/api/v1';
+const rawBase = 'http://127.0.0.1:8000'
+const API_BASE = (rawBase ? rawBase.replace(/\/+$/, '') : '') + '/api/v1';
 
 // Token Management
 export const getAccessToken = () => localStorage.getItem('mailhub_access_token');
