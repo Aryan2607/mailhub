@@ -11,6 +11,8 @@ from .views import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RegisterView,
+    UserResumeDownloadView,
+    UserResumeView,
 )
 
 urlpatterns = [
@@ -23,6 +25,10 @@ urlpatterns = [
     path("change-password/", ChangePasswordView.as_view(), name="auth-change-password"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="auth-password-reset"),
     path("password-reset-confirm/", PasswordResetConfirmView.as_view(), name="auth-password-reset-confirm"),
+
+    # Resume management
+    path("resume/", UserResumeView.as_view(), name="user-resume"),
+    path("resume/download/", UserResumeDownloadView.as_view(), name="user-resume-download"),
 
     # Admin user management
     path("admin/users/", AdminUserListView.as_view(), name="admin-user-list"),

@@ -1,13 +1,15 @@
 from django.contrib.auth.tokens import default_token_generator
+from django.http import FileResponse, Http404
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import User
+from .models import User, UserResume
 from .permissions import IsAdminUserRole
 from .serializers import (
     ChangePasswordSerializer,
@@ -15,8 +17,10 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
+    UserResumeSerializer,
     UserSerializer,
 )
+from .services.resume_parser import extract_text_from_resume
 
 
 class RegisterView(APIView):
@@ -207,3 +211,116 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminUserRole]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class UserResumeView(APIView):
+    """
+    Manage user's primary resume (one resume per user).
+    GET: Retrieve current resume details.
+    POST: Upload or replace resume file, automatically extract text for Gemini.
+    DELETE: Delete resume.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request):
+        resume = getattr(request.user, "resume", None)
+        if not resume:
+            return Response({"has_resume": False, "resume": None}, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "has_resume": True,
+                "resume": UserResumeSerializer(resume).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request):
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response(
+                {"error": "Please provide a resume file under the 'file' field."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate file size (max 5MB)
+        if uploaded_file.size > 5 * 1024 * 1024:
+            return Response(
+                {"error": "File size exceeds 5MB limit. Please upload a resume file under 5MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        filename = uploaded_file.name
+        file_bytes = uploaded_file.read()
+
+        # Parse text from resume
+        extracted_text, parse_error = extract_text_from_resume(file_bytes, filename)
+        if not extracted_text and parse_error:
+            return Response(
+                {"error": f"Failed to read resume content: {parse_error}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Reset pointer for saving
+        uploaded_file.seek(0)
+
+        # Update or create resume (one per user)
+        existing_resume = getattr(request.user, "resume", None)
+        if existing_resume:
+            # Delete old file from storage
+            if existing_resume.file:
+                existing_resume.file.delete(save=False)
+            existing_resume.file = uploaded_file
+            existing_resume.original_filename = filename
+            existing_resume.extracted_text = extracted_text
+            existing_resume.file_size = uploaded_file.size
+            existing_resume.save()
+            resume = existing_resume
+        else:
+            resume = UserResume.objects.create(
+                user=request.user,
+                file=uploaded_file,
+                original_filename=filename,
+                extracted_text=extracted_text,
+                file_size=uploaded_file.size,
+            )
+
+        return Response(
+            {
+                "message": "Resume uploaded and processed successfully.",
+                "has_resume": True,
+                "resume": UserResumeSerializer(resume).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request):
+        resume = getattr(request.user, "resume", None)
+        if resume:
+            if resume.file:
+                resume.file.delete(save=False)
+            resume.delete()
+            return Response({"message": "Resume deleted successfully."}, status=status.HTTP_200_OK)
+        return Response({"message": "No resume found to delete."}, status=status.HTTP_200_OK)
+
+
+class UserResumeDownloadView(APIView):
+    """Download the user's uploaded resume file."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        resume = getattr(request.user, "resume", None)
+        if not resume or not resume.file:
+            raise Http404("Resume file not found.")
+
+        try:
+            return FileResponse(
+                resume.file.open("rb"),
+                as_attachment=True,
+                filename=resume.original_filename,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to download resume: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

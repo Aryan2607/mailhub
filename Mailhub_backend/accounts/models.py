@@ -66,3 +66,23 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
+
+
+class UserResume(models.Model):
+    """
+    Each user can upload one primary resume for AI-powered job outreach.
+    Uploading a new resume automatically updates/replaces the previous one.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="resume",
+    )
+    file = models.FileField(upload_to="resumes/")
+    original_filename = models.CharField(max_length=255)
+    extracted_text = models.TextField(blank=True, default="")
+    file_size = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Resume of {self.user.email} ({self.original_filename})"

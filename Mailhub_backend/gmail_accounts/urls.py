@@ -22,6 +22,8 @@ from .views import (
     GmailAccountListView,
     GmailAccountProfileView,
     GmailOAuthCallbackView,
+    GeminiGenerateBulkView,
+    GeminiGenerateSingleView,
 )
 
 urlpatterns = [
@@ -65,4 +67,8 @@ urlpatterns = [
     path("accounts/<int:pk>/emails/<str:message_id>/unstar/", EmailUnstarView.as_view(), name="email-unstar"),
     path("accounts/<int:pk>/emails/<str:message_id>/archive/", EmailArchiveView.as_view(), name="email-archive"),
     path("accounts/<int:pk>/emails/<str:message_id>/labels/", EmailModifyLabelsView.as_view(), name="email-modify-labels"),
+
+    # Gemini AI Automated Job Outreach
+    path("gemini/generate-single/", GeminiGenerateSingleView.as_view(), name="gemini-generate-single"),
+    path("gemini/generate-bulk/", GeminiGenerateBulkView.as_view(), name="gemini-generate-bulk"),
 ]

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
-import { accountsApi, emailsApi } from './api';
+import { accountsApi, emailsApi, resumeApi } from './api';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import AdminBanner from './components/AdminBanner';
@@ -8,6 +8,7 @@ import EmailList from './components/EmailList';
 import EmailDetail from './components/EmailDetail';
 import ComposeModal from './components/ComposeModal';
 import ConfirmModal from './components/ConfirmModal';
+import ResumeModal from './components/ResumeModal';
 import AuthView from './components/AuthView';
 import { CheckCircle2, AlertCircle, Plus, Mail } from 'lucide-react';
 
@@ -46,6 +47,23 @@ export default function App() {
     danger: true,
     onConfirm: () => {},
   });
+
+  // Resume Modal & Data state
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
+  const [userResume, setUserResume] = useState(null);
+
+  const loadUserResume = useCallback(async () => {
+    try {
+      const res = await resumeApi.getResume();
+      if (res.has_resume) {
+        setUserResume(res.resume);
+      } else {
+        setUserResume(null);
+      }
+    } catch {
+      // Ignored if user not authenticated or network error
+    }
+  }, []);
 
   // Toast notification
   const [toast, setToast] = useState(null);
@@ -97,8 +115,9 @@ export default function App() {
   useEffect(() => {
     if (user) {
       loadAccounts(selectedAdminUserId);
+      loadUserResume();
     }
-  }, [user, selectedAdminUserId, loadAccounts]);
+  }, [user, selectedAdminUserId, loadAccounts, loadUserResume]);
 
   // Load Mailbox Profile Stats for Active Account
   useEffect(() => {
@@ -429,6 +448,8 @@ export default function App() {
           setSearchQuery('');
           loadEmails({ reset: true, q: '' });
         }}
+        userResume={userResume}
+        onOpenResumeModal={() => setResumeModalOpen(true)}
       />
 
       {/* Admin Mode Oversight Bar (shown only for Admin users) */}
@@ -462,6 +483,8 @@ export default function App() {
           onConnectAccount={handleConnectAccount}
           onDisconnectAccount={handleDisconnectAccount}
           accountStats={accountStats}
+          userResume={userResume}
+          onOpenResumeModal={() => setResumeModalOpen(true)}
         />
 
         {/* Content Pane: Email List & Email Detail Viewer */}
@@ -556,6 +579,15 @@ export default function App() {
           showToast('Email sent successfully!', 'success');
           loadEmails({ reset: true });
         }}
+        userResume={userResume}
+        onOpenResumeModal={() => setResumeModalOpen(true)}
+      />
+
+      {/* Resume Management Modal */}
+      <ResumeModal
+        isOpen={resumeModalOpen}
+        onClose={() => setResumeModalOpen(false)}
+        onResumeUpdated={(updatedResume) => setUserResume(updatedResume)}
       />
 
       {/* Confirmation Modal */}

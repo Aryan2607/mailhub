@@ -67,10 +67,11 @@ def get_gmail_service(account: GmailAccount):
                 )
                 account.save(update_fields=["access_token", "refresh_token", "token_expiry", "updated_at"])
             except Exception as e:
-                if not access_token:
-                    raise ValueError(
-                        f"Failed to refresh Google token for {account.email_address}: {str(e)}. Please reconnect your account."
-                    )
+                account.is_active = False
+                account.save(update_fields=["is_active", "updated_at"])
+                raise ValueError(
+                    f"Google credentials for {account.email_address} have expired or been revoked. Please reconnect this account."
+                )
         elif not access_token:
             raise ValueError(
                 f"Access token for {account.email_address} has expired and no refresh token is stored. Please reconnect your account."

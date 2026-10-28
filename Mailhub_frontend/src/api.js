@@ -259,3 +259,43 @@ export const adminApi = {
     return apiRequest('/auth/admin/users/');
   },
 };
+
+// ----------------- Resume APIs -----------------
+export const resumeApi = {
+  getResume: async () => {
+    return apiRequest('/auth/resume/');
+  },
+  uploadResume: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest('/auth/resume/', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  deleteResume: async () => {
+    return apiRequest('/auth/resume/', {
+      method: 'DELETE',
+    });
+  },
+  getDownloadUrl: () => {
+    return `${API_BASE}/auth/resume/download/`;
+  },
+};
+
+// ----------------- Gemini AI APIs -----------------
+export const geminiApi = {
+  generateSingle: async ({ recipient_email, job_post, gemini_api_key }) => {
+    return apiRequest('/gmail/gemini/generate-single/', {
+      method: 'POST',
+      body: JSON.stringify({ recipient_email, job_post, gemini_api_key }),
+    });
+  },
+  generateBulk: async ({ target_job_role, notes, gemini_api_key }) => {
+    return apiRequest('/gmail/gemini/generate-bulk/', {
+      method: 'POST',
+      body: JSON.stringify({ target_job_role, notes, gemini_api_key }),
+    });
+  },
+};
+

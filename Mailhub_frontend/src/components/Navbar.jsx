@@ -11,6 +11,8 @@ import {
   User as UserIcon,
   Check,
   X,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 
 export default function Navbar({
@@ -24,6 +26,8 @@ export default function Navbar({
   onSearchChange,
   onSearchSubmit,
   onClearSearch,
+  userResume = null,
+  onOpenResumeModal,
 }) {
   const { user, isAdmin, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -296,6 +300,41 @@ export default function Navbar({
           style={{ width: 36, height: 36 }}
         >
           <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
+        </button>
+
+        {/* Resume Management Button */}
+        <button
+          type="button"
+          onClick={onOpenResumeModal}
+          className="btn btn-secondary"
+          style={{
+            padding: '5px 12px',
+            height: 36,
+            background: userResume ? 'rgba(16, 185, 129, 0.08)' : 'rgba(99, 102, 241, 0.1)',
+            borderColor: userResume ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)',
+            color: userResume ? '#6ee7b7' : 'var(--primary)',
+            fontSize: 12,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+          title={userResume ? `Resume: ${userResume.original_filename}. Click to manage.` : 'Upload resume for Gemini AI email generation'}
+        >
+          {userResume ? <FileText size={14} /> : <Sparkles size={14} />}
+          <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {userResume ? userResume.original_filename : 'Upload Resume'}
+          </span>
+          {userResume && (
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--emerald)',
+              }}
+            />
+          )}
         </button>
 
         {/* User Pill */}

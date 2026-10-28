@@ -20,7 +20,7 @@ from .serializers import (
     GmailAccountSerializer,
     ModifyLabelsSerializer,
 )
-from .services import gmail_service, oauth_service
+from .services import gemini_service, gmail_service, oauth_service
 
 
 def get_account_or_404(account_id: int, user: User) -> GmailAccount:
@@ -333,6 +333,28 @@ class EmailSendView(APIView):
         # Extract file attachments from request.FILES
         attachments = list(request.FILES.values())
 
+        # Support attaching stored UserResume automatically
+        attach_resume = str(request.data.get("attach_resume", "")).lower() in ("true", "1", "yes")
+        if attach_resume:
+            user_resume = getattr(request.user, "resume", None)
+            if user_resume and user_resume.file:
+                try:
+                    user_resume.file.open("rb")
+                    file_bytes = user_resume.file.read()
+                    user_resume.file.close()
+
+                    class ResumeAttachmentWrapper:
+                        def __init__(self, filename, content):
+                            self.name = filename
+                            self.content_type = "application/pdf" if filename.lower().endswith(".pdf") else "application/octet-stream"
+                            self._content = content
+                        def read(self):
+                            return self._content
+
+                    attachments.append(ResumeAttachmentWrapper(user_resume.original_filename, file_bytes))
+                except Exception as e:
+                    pass
+
         try:
             result = gmail_service.send_email(
                 account=account,
@@ -614,3 +636,94 @@ class AdminOverviewView(APIView):
             },
             "users": users_list,
         })
+
+
+class GeminiGenerateSingleView(APIView):
+    """
+    Uses Google Gemini to analyze user's resume and a specific job posting
+    to generate tailored application email Subject & Body.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user_resume = getattr(request.user, "resume", None)
+        if not user_resume or not user_resume.extracted_text.strip():
+            return Response(
+                {"error": "Please upload your resume first before using AI generation."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        recipient_email = request.data.get("recipient_email", "").strip()
+        job_post = request.data.get("job_post", "").strip()
+        api_key = request.data.get("gemini_api_key", "").strip() or None
+
+        if not job_post:
+            return Response(
+                {"error": "Please provide the job vacancy or job posting details."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sender_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email.split("@")[0]
+
+        try:
+            generated = gemini_service.generate_single_job_application(
+                resume_text=user_resume.extracted_text,
+                recipient_email=recipient_email,
+                job_post=job_post,
+                sender_name=sender_name,
+                api_key=api_key,
+            )
+            return Response({
+                "subject": generated["subject"],
+                "body": generated["body"],
+                "resume_name": user_resume.original_filename,
+                "resume_attached": True,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GeminiGenerateBulkView(APIView):
+    """
+    Uses Google Gemini to analyze user's resume and target job role
+    to generate professional cold outreach email Subject & Body for a list of emails.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user_resume = getattr(request.user, "resume", None)
+        if not user_resume or not user_resume.extracted_text.strip():
+            return Response(
+                {"error": "Please upload your resume first before using AI outreach generation."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_job_role = request.data.get("target_job_role", "").strip()
+        notes = request.data.get("notes", "").strip()
+        api_key = request.data.get("gemini_api_key", "").strip() or None
+
+        if not target_job_role:
+            return Response(
+                {"error": "Please specify which kind of job / role you are searching for."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sender_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email.split("@")[0]
+
+        try:
+            generated = gemini_service.generate_bulk_cold_outreach(
+                resume_text=user_resume.extracted_text,
+                target_job_role=target_job_role,
+                additional_notes=notes,
+                sender_name=sender_name,
+                api_key=api_key,
+            )
+            return Response({
+                "subject": generated["subject"],
+                "body": generated["body"],
+                "resume_name": user_resume.original_filename,
+                "resume_attached": True,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+

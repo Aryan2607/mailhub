@@ -200,3 +200,11 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
 # Email Backend for Password Reset in development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Media Files (Resumes, Uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Google Gemini AI Settings
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+

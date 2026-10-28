@@ -2,13 +2,35 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User
+from .models import User, UserResume
+
+
+class UserResumeSerializer(serializers.ModelSerializer):
+    preview_text = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserResume
+        fields = [
+            "id",
+            "original_filename",
+            "file_size",
+            "preview_text",
+            "uploaded_at",
+        ]
+        read_only_fields = ["id", "original_filename", "file_size", "preview_text", "uploaded_at"]
+
+    def get_preview_text(self, obj):
+        if not obj.extracted_text:
+            return ""
+        return obj.extracted_text[:400] + ("..." if len(obj.extracted_text) > 400 else "")
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Public user serializer."""
     is_admin = serializers.BooleanField(read_only=True)
     connected_accounts_count = serializers.SerializerMethodField()
+    has_resume = serializers.SerializerMethodField()
+    resume = UserResumeSerializer(read_only=True)
 
     class Meta:
         model = User
@@ -21,15 +43,20 @@ class UserSerializer(serializers.ModelSerializer):
             "is_admin",
             "is_active",
             "connected_accounts_count",
+            "has_resume",
+            "resume",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "is_admin", "created_at", "updated_at"]
+        read_only_fields = ["id", "is_admin", "has_resume", "resume", "created_at", "updated_at"]
 
     def get_connected_accounts_count(self, obj):
         if hasattr(obj, "gmail_accounts"):
             return obj.gmail_accounts.count()
         return 0
+
+    def get_has_resume(self, obj):
+        return hasattr(obj, "resume") and bool(obj.resume)
 
 
 class RegisterSerializer(serializers.ModelSerializer):

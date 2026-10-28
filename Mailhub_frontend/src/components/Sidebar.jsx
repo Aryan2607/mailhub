@@ -11,6 +11,7 @@ import {
   Plus,
   Unlink,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 
 const FOLDERS = [
@@ -33,6 +34,8 @@ export default function Sidebar({
   onConnectAccount,
   onDisconnectAccount,
   accountStats = null,
+  userResume = null,
+  onOpenResumeModal,
 }) {
   return (
     <aside className="app-sidebar">
@@ -110,6 +113,61 @@ export default function Sidebar({
             </button>
           );
         })}
+
+        {/* AI Resume Status Card */}
+        <div
+          onClick={onOpenResumeModal}
+          style={{
+            margin: '14px 4px 6px',
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: userResume
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(99, 102, 241, 0.05))'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(236, 72, 153, 0.08))',
+            border: userResume
+              ? '1px solid rgba(16, 185, 129, 0.25)'
+              : '1px solid rgba(99, 102, 241, 0.3)',
+            cursor: 'pointer',
+            transition: 'all var(--transition-fast)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={14} color="var(--primary)" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase' }}>
+                AI Job Outreach
+              </span>
+            </div>
+            {userResume && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: 8,
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#6ee7b7',
+                }}
+              >
+                READY
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: userResume ? '#6ee7b7' : 'var(--text-secondary)', fontWeight: 500 }}>
+            {userResume ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <FileText size={12} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {userResume.original_filename}
+                </span>
+              </span>
+            ) : (
+              <span>+ Upload Resume for Gemini</span>
+            )}
+          </div>
+        </div>
 
         {/* Account Mailbox Stats if available */}
         {accountStats && (
