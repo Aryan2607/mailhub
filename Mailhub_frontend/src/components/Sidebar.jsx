@@ -195,7 +195,7 @@ export default function Sidebar({
                   </span>
                 </div>
 
-                <button
+                {/* <button
                   className="btn-icon"
                   title="Disconnect account"
                   onClick={(e) => {
@@ -211,7 +211,7 @@ export default function Sidebar({
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.6)}
                 >
                   <Unlink size={13} />
-                </button>
+                </button> */}
               </div>
             );
           })}
