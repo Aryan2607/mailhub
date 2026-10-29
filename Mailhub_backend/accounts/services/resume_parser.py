@@ -19,11 +19,24 @@ def extract_text_from_resume(file_bytes: bytes, filename: str) -> Tuple[str, str
             pdf_file = io.BytesIO(file_bytes)
             reader = pypdf.PdfReader(pdf_file)
             page_texts = []
+            extracted_links = []
             for i, page in enumerate(reader.pages):
                 page_content = page.extract_text()
                 if page_content:
                     page_texts.append(page_content.strip())
+                if "/Annots" in page:
+                    try:
+                        for annot in page["/Annots"]:
+                            obj = annot.get_object()
+                            if "/A" in obj and "/URI" in obj["/A"]:
+                                uri = str(obj["/A"]["/URI"]).strip()
+                                if uri and uri not in extracted_links:
+                                    extracted_links.append(uri)
+                    except Exception:
+                        pass
             text = "\n\n".join(page_texts).strip()
+            if extracted_links:
+                text += "\n\nExtracted Web Links & Profile URLs:\n" + "\n".join(f"- {link}" for link in extracted_links)
 
         elif lower_name.endswith((".txt", ".md", ".rtf", ".csv")):
             try:

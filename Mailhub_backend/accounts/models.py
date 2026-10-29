@@ -85,11 +85,26 @@ class UserResume(models.Model):
         on_delete=models.CASCADE,
         related_name="resume",
     )
-    file = models.FileField(upload_to="resumes/")
+    file = models.FileField(upload_to="resumes/", blank=True, null=True)
+    file_data = models.BinaryField(blank=True, null=True)
     original_filename = models.CharField(max_length=255)
     extracted_text = models.TextField(blank=True, default="")
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now=True)
+
+    def get_file_bytes(self) -> bytes:
+        """Returns the raw resume bytes from DB binary field or disk storage."""
+        if self.file_data:
+            return bytes(self.file_data)
+        if self.file:
+            try:
+                self.file.open("rb")
+                content = self.file.read()
+                self.file.close()
+                return content
+            except Exception:
+                pass
+        return b""
 
     def __str__(self):
         return f"Resume of {self.user.email} ({self.original_filename})"

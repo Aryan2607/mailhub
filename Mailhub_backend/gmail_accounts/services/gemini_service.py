@@ -187,7 +187,7 @@ CRITICAL INSTRUCTIONS:
      * Format with bold headings (e.g., "* **Client Engagement & Communication:** ...")
      * Each bullet must highlight a concrete capability backed by their resume, showing how it solves problems for the employer.
    - Resume & Call-to-Action (1-2 sentences): Mention that the full resume is attached with complete background details, and invite a brief introductory conversation or interview.
-   - Sign-off & Signature Block: Professional sign-off ("Warm regards," or "Sincerely,"), candidate's full name, phone number, and email accurately extracted from the resume.
+   - Sign-off & Signature Block: Professional sign-off ("Warm regards," or "Sincerely,"), candidate full name, phone number, and email accurately extracted from the resume. For LinkedIn: If a LinkedIn URL or web link is found in the resume or extracted links, YOU MUST format it as a full, direct URL (e.g., "LinkedIn: https://www.linkedin.com/in/..."). NEVER output just the candidate's plain name for LinkedIn. If no LinkedIn URL or link exists, omit the LinkedIn line completely.
 
 OUTPUT FORMAT REQUIREMENTS:
 Output ONLY a valid JSON object with EXACTLY two keys:
@@ -255,7 +255,7 @@ CRITICAL INSTRUCTIONS:
    - Opening: Brief introduction and direct inquiry regarding current or upcoming opportunities in {target_job_role}.
    - Core Strengths (2-3 punchy bullet points): Key transferable capabilities from resume relevant to this role.
    - Call-to-Action: Mention that the complete resume is attached, and politely invite a brief 10-minute introductory conversation.
-   - Signature Block: Candidate name, phone number, and email accurately drawn from the resume.
+   - Signature Block: Candidate full name, phone number, and email accurately drawn from the resume. For LinkedIn: If a LinkedIn URL or web link is found in the resume or extracted links, format it as a full URL (e.g. "LinkedIn: https://www.linkedin.com/in/..."). Never write just the candidate's name for LinkedIn. If no URL exists, omit the LinkedIn line.
 
 OUTPUT FORMAT REQUIREMENTS:
 Output ONLY a valid JSON object with EXACTLY two keys:

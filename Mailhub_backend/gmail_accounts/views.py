@@ -336,13 +336,24 @@ class EmailSendView(APIView):
         # Support attaching stored UserResume automatically
         attach_resume = str(request.data.get("attach_resume", "")).lower() in ("true", "1", "yes")
         if attach_resume:
-            user_resume = getattr(request.user, "resume", None)
-            if user_resume and user_resume.file:
-                try:
-                    user_resume.file.open("rb")
-                    file_bytes = user_resume.file.read()
-                    user_resume.file.close()
-
+            user_resume = None
+            if hasattr(request.user, "resume") and request.user.resume:
+                user_resume = request.user.resume
+            elif hasattr(account, "user") and hasattr(account.user, "resume") and account.user.resume:
+                user_resume = account.user.resume
+            elif getattr(request.user, "is_admin", False):
+                from accounts.models import UserResume
+                user_resume = UserResume.objects.first()
+            if user_resume:
+                file_bytes = user_resume.get_file_bytes() if hasattr(user_resume, "get_file_bytes") else b""
+                if not file_bytes and user_resume.file:
+                    try:
+                        user_resume.file.open("rb")
+                        file_bytes = user_resume.file.read()
+                        user_resume.file.close()
+                    except Exception:
+                        pass
+                if file_bytes:
                     class ResumeAttachmentWrapper:
                         def __init__(self, filename, content):
                             self.name = filename
@@ -350,10 +361,8 @@ class EmailSendView(APIView):
                             self._content = content
                         def read(self):
                             return self._content
-
                     attachments.append(ResumeAttachmentWrapper(user_resume.original_filename, file_bytes))
-                except Exception as e:
-                    pass
+
 
         try:
             result = gmail_service.send_email(
@@ -651,6 +660,13 @@ class GeminiGenerateSingleView(APIView):
 
     def post(self, request):
         user_resume = getattr(request.user, "resume", None)
+        if (not user_resume or not user_resume.extracted_text.strip()) and getattr(request.user, "is_admin", False):
+            from accounts.models import UserResume
+            user_id = request.data.get("user_id") or request.query_params.get("user_id")
+            if user_id:
+                user_resume = UserResume.objects.filter(user_id=user_id).first()
+            if not user_resume:
+                user_resume = UserResume.objects.exclude(extracted_text="").first()
         if not user_resume or not user_resume.extracted_text.strip():
             return Response(
                 {"error": "Please upload your resume first before using AI generation."},
@@ -696,6 +712,13 @@ class GeminiGenerateBulkView(APIView):
 
     def post(self, request):
         user_resume = getattr(request.user, "resume", None)
+        if (not user_resume or not user_resume.extracted_text.strip()) and getattr(request.user, "is_admin", False):
+            from accounts.models import UserResume
+            user_id = request.data.get("user_id") or request.query_params.get("user_id")
+            if user_id:
+                user_resume = UserResume.objects.filter(user_id=user_id).first()
+            if not user_resume:
+                user_resume = UserResume.objects.exclude(extracted_text="").first()
         if not user_resume or not user_resume.extracted_text.strip():
             return Response(
                 {"error": "Please upload your resume first before using AI outreach generation."},

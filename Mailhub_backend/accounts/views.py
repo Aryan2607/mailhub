@@ -4,7 +4,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, permissions, status
@@ -290,6 +290,7 @@ class UserResumeView(APIView):
             if existing_resume.file:
                 existing_resume.file.delete(save=False)
             existing_resume.file = uploaded_file
+            existing_resume.file_data = file_bytes
             existing_resume.original_filename = filename
             existing_resume.extracted_text = extracted_text
             existing_resume.file_size = uploaded_file.size
@@ -299,6 +300,7 @@ class UserResumeView(APIView):
             resume = UserResume.objects.create(
                 user=request.user,
                 file=uploaded_file,
+                file_data=file_bytes,
                 original_filename=filename,
                 extracted_text=extracted_text,
                 file_size=uploaded_file.size,
@@ -345,7 +347,22 @@ class UserResumeDownloadView(APIView):
                 except User.DoesNotExist:
                     pass
         resume = getattr(target_user, "resume", None)
-        if not resume or not resume.file:
+        if not resume:
+            raise Http404("Resume not found.")
+
+        file_bytes = resume.get_file_bytes()
+        if not file_bytes:
+            raise Http404("Resume file content not found.")
+
+        response = HttpResponse(
+            file_bytes,
+            content_type="application/pdf" if resume.original_filename.lower().endswith(".pdf") else "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{resume.original_filename}"'
+        return response
+
+        # Legacy fallback
+        if False and resume.file:
             raise Http404("Resume file not found.")
 
         try:
