@@ -518,25 +518,51 @@ class UserPendingEventsView(APIView):
 # ============================================================================
 
 class UserImageUploadView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     """
-    Upload an image file directly to Google Drive and persist its URL and metadata in DB.
+    Public API: Upload an image file directly to Google Drive and persist its URL and metadata in DB.
+    Does not require any access token / Authorization header.
+    user_id is mandatory in the request data to identify the owning user.
 
     Endpoint:
         POST /api/v1/auth/images/upload/
 
-    Headers:
-        Authorization: Bearer <access_token>
-        Content-Type: multipart/form-data
-
     Form-data:
-        image (or file): Binary image data
+        user_id: Required int/str (ID of the user who owns this image)
+        image (or file): Required binary image data
         caption: Optional text description
-        user_id: Optional int (Admins only: upload on behalf of specific user)
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
+        user_id = request.data.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return Response(
+                {"error": "user_id is mandatory. Please provide a valid 'user_id' in the form data."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user_id_str = str(user_id).strip()
+        target_user = None
+        if user_id_str.isdigit():
+            target_user = User.objects.filter(id=int(user_id_str)).first()
+        elif "@" in user_id_str:
+            target_user = User.objects.filter(email__iexact=user_id_str).first()
+        else:
+            try:
+                target_user = User.objects.filter(id=user_id).first()
+            except Exception:
+                pass
+
+        if not target_user:
+            return Response(
+                {"error": f"User with id '{user_id}' not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         uploaded_file = request.FILES.get("image") or request.FILES.get("file")
         if not uploaded_file:
             return Response(
@@ -565,17 +591,6 @@ class UserImageUploadView(APIView):
                 {"error": "File size exceeds the 25MB limit. Please upload an image under 25MB."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # Determine target user (Admins can optionally upload for a specific user)
-        target_user = request.user
-        if getattr(request.user, "is_admin", False) and request.data.get("user_id"):
-            try:
-                target_user = User.objects.get(id=request.data.get("user_id"))
-            except User.DoesNotExist:
-                return Response(
-                    {"error": f"User with id {request.data.get('user_id')} not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
 
         try:
             file_bytes = uploaded_file.read()

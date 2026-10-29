@@ -194,7 +194,7 @@ export default function App() {
   // Fetch Emails for Active Account and Folder
   const loadEmails = useCallback(
     async ({ pageToken = null, reset = false, q = '' } = {}) => {
-      if (!activeAccount) return;
+      if (!activeAccount || folder === 'captured_images') return;
 
       setLoadingEmails(true);
       try {
@@ -229,7 +229,7 @@ export default function App() {
   }, []);
 
   const handleWsSyncTrigger = useCallback(() => {
-    if (activeAccount) {
+    if (activeAccount && folder !== 'captured_images') {
       loadEmails({ reset: true, q: searchQuery });
     }
   }, [activeAccount, loadEmails, searchQuery]);
@@ -272,7 +272,7 @@ export default function App() {
 
   // Trigger load when active account, folder, or search changes
   useEffect(() => {
-    if (activeAccount) {
+    if (activeAccount && folder !== 'captured_images') {
       setActiveEmail(null);
       loadEmails({ reset: true, q: searchQuery });
     }

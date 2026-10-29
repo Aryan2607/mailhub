@@ -78,7 +78,16 @@ def upload_image_to_drive(
             "file_size": int,
         }
     """
-    service = get_drive_service()
+    try:
+        service = get_drive_service()
+    except Exception as creds_err:
+        logger.warning(f"Google Drive service unavailable ({creds_err}). Defaulting to local media storage fallback.")
+        return save_image_to_local_media(
+            file_bytes=file_bytes,
+            original_filename=original_filename,
+            mime_type=mime_type,
+            user_id=user_id,
+        )
     target_folder_id = folder_id or get_drive_folder_id()
 
     file_metadata: Dict[str, Any] = {
