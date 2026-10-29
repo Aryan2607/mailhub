@@ -10,10 +10,14 @@ import ComposeModal from './components/ComposeModal';
 import ConfirmModal from './components/ConfirmModal';
 import ResumeModal from './components/ResumeModal';
 import AuthView from './components/AuthView';
-import { CheckCircle2, AlertCircle, Plus, Mail } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Plus, Mail, PenSquare } from 'lucide-react';
 
 export default function App() {
   const { user, loading: authLoading, isAdmin } = useAuth();
+
+  // Responsive mobile drawer & single-pane switcher state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileView, setMobileView] = useState('list'); // 'list' | 'detail'
 
   // Accounts state
   const [accounts, setAccounts] = useState([]);
@@ -178,6 +182,7 @@ export default function App() {
   const handleSelectEmail = async (summary) => {
     if (!activeAccount) return;
     setActiveEmail(summary); // Set summary immediately for fast UI feedback
+    setMobileView('detail'); // Show email detail pane on mobile
     setLoadingDetail(true);
 
     try {
@@ -193,6 +198,12 @@ export default function App() {
     } finally {
       setLoadingDetail(false);
     }
+  };
+
+  // Back to email list (for mobile single-pane view)
+  const handleBackToList = () => {
+    setActiveEmail(null);
+    setMobileView('list');
   };
 
   // Connect Account -> OAuth flow
@@ -282,7 +293,10 @@ export default function App() {
       await emailsApi.trashEmail(activeAccount.id, email.id);
       showToast('Moved email to Trash', 'success');
       setEmails((prev) => prev.filter((e) => e.id !== email.id));
-      if (activeEmail?.id === email.id) setActiveEmail(null);
+      if (activeEmail?.id === email.id) {
+        setActiveEmail(null);
+        setMobileView('list');
+      }
     } catch (err) {
       showToast(err.message || 'Failed to trash email.', 'error');
     }
@@ -295,7 +309,10 @@ export default function App() {
       await emailsApi.restoreEmail(activeAccount.id, email.id);
       showToast('Restored email from Trash', 'success');
       setEmails((prev) => prev.filter((e) => e.id !== email.id));
-      if (activeEmail?.id === email.id) setActiveEmail(null);
+      if (activeEmail?.id === email.id) {
+        setActiveEmail(null);
+        setMobileView('list');
+      }
     } catch (err) {
       showToast(err.message || 'Failed to restore email.', 'error');
     }
@@ -316,7 +333,10 @@ export default function App() {
           showToast('Message permanently deleted from Gmail.', 'success');
           setConfirmModal((m) => ({ ...m, isOpen: false }));
           setEmails((prev) => prev.filter((e) => e.id !== email.id));
-          if (activeEmail?.id === email.id) setActiveEmail(null);
+          if (activeEmail?.id === email.id) {
+            setActiveEmail(null);
+            setMobileView('list');
+          }
         } catch (err) {
           showToast(err.message || 'Failed to delete message.', 'error');
         }
@@ -340,6 +360,7 @@ export default function App() {
           setConfirmModal((m) => ({ ...m, isOpen: false }));
           setEmails([]);
           setActiveEmail(null);
+          setMobileView('list');
         } catch (err) {
           showToast(err.message || 'Failed to empty trash.', 'error');
         }
@@ -355,7 +376,10 @@ export default function App() {
       showToast('Archived email', 'success');
       if (folder === 'inbox') {
         setEmails((prev) => prev.filter((e) => e.id !== email.id));
-        if (activeEmail?.id === email.id) setActiveEmail(null);
+        if (activeEmail?.id === email.id) {
+          setActiveEmail(null);
+          setMobileView('list');
+        }
       }
     } catch (err) {
       showToast(err.message || 'Failed to archive email.', 'error');
@@ -434,6 +458,9 @@ export default function App() {
           setActiveAccount(acc);
           setFolder('inbox');
           setSearchQuery('');
+          setActiveEmail(null);
+          setMobileView('list');
+          setSidebarOpen(false);
         }}
         onConnectAccount={handleConnectAccount}
         onRefresh={() => {
@@ -450,6 +477,8 @@ export default function App() {
         }}
         userResume={userResume}
         onOpenResumeModal={() => setResumeModalOpen(true)}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
       />
 
       {/* Admin Mode Oversight Bar (shown only for Admin users) */}
@@ -465,30 +494,53 @@ export default function App() {
 
       {/* Main Body */}
       <div className="app-body">
-        {/* Left Sidebar */}
+        {/* Mobile Sidebar Overlay Backdrop */}
+        <div
+          className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+        />
+
+        {/* Left Sidebar (Desktop & Mobile Drawer) */}
         <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
           activeFolder={folder}
           onSelectFolder={(f) => {
             setFolder(f);
             setSearchQuery('');
+            setActiveEmail(null);
+            setMobileView('list');
+            setSidebarOpen(false);
           }}
-          onOpenCompose={handleOpenCompose}
+          onOpenCompose={() => {
+            handleOpenCompose();
+            setSidebarOpen(false);
+          }}
           accounts={accounts}
           activeAccount={activeAccount}
           onSelectAccount={(acc) => {
             setActiveAccount(acc);
             setFolder('inbox');
             setSearchQuery('');
+            setActiveEmail(null);
+            setMobileView('list');
+            setSidebarOpen(false);
           }}
-          onConnectAccount={handleConnectAccount}
+          onConnectAccount={() => {
+            handleConnectAccount();
+            setSidebarOpen(false);
+          }}
           onDisconnectAccount={handleDisconnectAccount}
           accountStats={accountStats}
           userResume={userResume}
-          onOpenResumeModal={() => setResumeModalOpen(true)}
+          onOpenResumeModal={() => {
+            setResumeModalOpen(true);
+            setSidebarOpen(false);
+          }}
         />
 
         {/* Content Pane: Email List & Email Detail Viewer */}
-        <main className="app-content">
+        <main className={`app-content mobile-view-${mobileView}`}>
           {!activeAccount ? (
             <div
               style={{
@@ -497,7 +549,7 @@ export default function App() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 40,
+                padding: '32px 20px',
                 textAlign: 'center',
               }}
             >
@@ -554,6 +606,7 @@ export default function App() {
               <EmailDetail
                 email={activeEmail}
                 activeAccount={activeAccount}
+                onBack={handleBackToList}
                 onReply={handleReply}
                 onForward={handleForward}
                 onTrash={handleTrash}
@@ -567,6 +620,18 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Mobile Floating Action Button (FAB) */}
+      {activeAccount && (
+        <button
+          className="mobile-compose-fab"
+          onClick={handleOpenCompose}
+          title="Compose Message"
+          aria-label="Compose Message"
+        >
+          <PenSquare size={22} />
+        </button>
+      )}
 
       {/* Floating Compose / Reply / Forward Modal */}
       <ComposeModal

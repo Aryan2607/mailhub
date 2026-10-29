@@ -116,6 +116,18 @@ export default function ComposeModal({
     }
   }, [isOpen, mode, originalEmail, userResume]);
 
+  // Handle Escape key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isCampaignRunning && !sending) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isCampaignRunning, sending, onClose]);
+
   if (!isOpen || !activeAccount) return null;
 
   // Parse bulk emails from raw string
@@ -355,7 +367,7 @@ export default function ComposeModal({
     <div
       className="compose-window"
       style={{
-        width: isMaximized ? '92vw' : 640,
+        width: isMaximized ? '94vw' : 'min(640px, 100vw)',
         height: isMaximized ? '92vh' : 'auto',
         maxHeight: isMaximized ? '92vh' : '88vh',
         transition: 'all 0.25s ease',
@@ -363,6 +375,7 @@ export default function ComposeModal({
     >
       {/* Header */}
       <div
+        className="compose-header"
         style={{
           padding: '12px 18px',
           background: '#0d131f',
@@ -370,9 +383,11 @@ export default function ComposeModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>
             {mode === 'reply'
               ? 'Reply to Message'
@@ -384,6 +399,7 @@ export default function ComposeModal({
           {/* Mode Switcher Tabs (Only when mode === 'new') */}
           {mode === 'new' && !isCampaignRunning && (
             <div
+              className="compose-mode-tabs"
               style={{
                 display: 'flex',
                 background: 'rgba(255, 255, 255, 0.05)',

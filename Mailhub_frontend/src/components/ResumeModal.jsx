@@ -30,7 +30,15 @@ export default function ResumeModal({ isOpen, onClose, onResumeUpdated }) {
     setError('');
     setSuccessMsg('');
     fetchResume();
-  }, [isOpen]);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !uploading && !deleting) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, uploading, deleting, onClose]);
 
   const fetchResume = async () => {
     setLoading(true);
@@ -111,12 +119,11 @@ export default function ResumeModal({ isOpen, onClose, onResumeUpdated }) {
         className="glass-panel"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: 540,
-          width: '90%',
-          maxHeight: '90vh',
+          width: 'min(540px, 100%)',
+          maxHeight: '92vh',
           overflowY: 'auto',
           background: '#111827',
-          padding: 24,
+          padding: 'clamp(16px, 4vw, 24px)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-lg)',
         }}

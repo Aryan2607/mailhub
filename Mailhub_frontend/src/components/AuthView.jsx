@@ -53,15 +53,15 @@ export default function AuthView() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'radial-gradient(ellipse at 50% 20%, #151b2d 0%, #080c14 70%)',
-        padding: 24,
+        padding: 'clamp(12px, 3vw, 24px)',
       }}
     >
       <div
         className="glass-panel"
         style={{
           width: '100%',
-          maxWidth: 480,
-          padding: '40px 36px',
+          maxWidth: 460,
+          padding: 'clamp(24px, 6vw, 40px) clamp(18px, 6vw, 36px)',
           boxShadow: 'var(--shadow-lg)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
@@ -164,8 +164,8 @@ export default function AuthView() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Optional Names for Registration */}
           {isRegister && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 180px' }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
                   First Name
                 </label>
@@ -177,7 +177,7 @@ export default function AuthView() {
                   onChange={(e) => setFirstName(e.target.value)}
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: '1 1 180px' }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
                   Last Name
                 </label>

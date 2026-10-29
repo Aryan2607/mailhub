@@ -15,11 +15,13 @@ import {
   FileText,
   User,
   Clock,
+  ArrowLeft,
 } from 'lucide-react';
 
 export default function EmailDetail({
   email,
   activeAccount,
+  onBack,
   onReply,
   onForward,
   onTrash,
@@ -41,16 +43,30 @@ export default function EmailDetail({
           justifyContent: 'center',
           color: 'var(--text-muted)',
           textAlign: 'center',
-          padding: 40,
+          padding: 32,
         }}
       >
         <div>
-          <Mail size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
-          <h3 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <Mail size={32} style={{ opacity: 0.35, color: 'var(--primary)' }} />
+          </div>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
             No Email Selected
           </h3>
-          <p style={{ fontSize: 13, maxWidth: 320 }}>
-            Select an email from the list on the left to read its full content, download attachments, or reply.
+          <p style={{ fontSize: 13, maxWidth: 300, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+            Select any email from the list to view its full conversation, download attachments, or reply.
           </p>
         </div>
       </div>
@@ -66,16 +82,32 @@ export default function EmailDetail({
       {/* Action Toolbar */}
       <div
         style={{
-          padding: '12px 24px',
+          padding: '10px 16px',
           borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'rgba(15, 23, 42, 0.55)',
+          gap: 10,
+          flexWrap: 'wrap',
+          flexShrink: 0,
         }}
       >
-        {/* Left Actions: Reply & Forward */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Left Actions: Mobile Back + Reply & Forward */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {/* Mobile Back Button */}
+          <button
+            type="button"
+            onClick={onBack}
+            className="btn btn-secondary mobile-back-btn"
+            style={{ fontSize: 13, padding: '5px 10px', gap: 5 }}
+            title="Back to email list"
+            aria-label="Back to messages"
+          >
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+
           <button
             onClick={() => onReply(email)}
             className="btn btn-secondary"
@@ -96,7 +128,7 @@ export default function EmailDetail({
         </div>
 
         {/* Right Actions: Star, Read/Unread, Archive, Trash / Permanent Delete */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button
             onClick={() => onToggleStar(email)}
             className="btn-icon"
@@ -109,7 +141,7 @@ export default function EmailDetail({
           <button
             onClick={() => onToggleRead(email)}
             className="btn-icon"
-            title="Mark as unread"
+            title={email.is_read ? 'Mark as unread' : 'Mark as read'}
           >
             <Mail size={16} />
           </button>
@@ -117,7 +149,7 @@ export default function EmailDetail({
           <button
             onClick={() => onArchive(email)}
             className="btn-icon"
-            title="Archive"
+            title="Archive email"
           >
             <Archive size={16} />
           </button>
@@ -139,17 +171,17 @@ export default function EmailDetail({
                 onClick={() => onPermanentDelete(email)}
                 className="btn btn-danger"
                 style={{ fontSize: 12, padding: '5px 10px' }}
-                title="Action 2: Permanently delete message from Gmail"
+                title="Permanently delete message from Gmail"
               >
                 <AlertTriangle size={14} />
-                <span>Delete Permanently</span>
+                <span>Delete</span>
               </button>
             </>
           ) : (
             <button
               onClick={() => onTrash(email)}
               className="btn-icon"
-              title="Action 1: Move to Trash"
+              title="Move to Trash"
               style={{ color: 'var(--rose)' }}
             >
               <Trash2 size={16} />
@@ -159,10 +191,10 @@ export default function EmailDetail({
       </div>
 
       {/* Email Header Details */}
-      <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
         {/* Subject & Labels */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', lineHeight: 1.3 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', fontWeight: 700, color: '#ffffff', lineHeight: 1.3, wordBreak: 'break-word', flex: 1, minWidth: 200 }}>
             {email.subject || '(No Subject)'}
           </h2>
 
@@ -187,41 +219,40 @@ export default function EmailDetail({
         </div>
 
         {/* Sender & Recipient Metadata */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             {/* Avatar */}
             <div
               style={{
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 borderRadius: '50%',
                 background: 'var(--gradient-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: 700,
                 color: '#ffffff',
                 boxShadow: '0 4px 12px var(--primary-glow)',
+                flexShrink: 0,
               }}
             >
               {email.from ? email.from.charAt(0).toUpperCase() : 'U'}
             </div>
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#ffffff' }}>
-                  {email.from}
-                </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', wordBreak: 'break-word' }}>
+                {email.from}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-word' }}>
                 To: <span style={{ color: 'var(--text-secondary)' }}>{email.to}</span>
                 {email.cc && <span> | Cc: {email.cc}</span>}
               </div>
             </div>
           </div>
 
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
             <Clock size={13} />
             <span>{email.date}</span>
           </div>
@@ -231,17 +262,18 @@ export default function EmailDetail({
       {/* Message Body Controls: HTML vs Plain Text Toggle */}
       <div
         style={{
-          padding: '8px 28px',
-          background: 'rgba(0, 0, 0, 0.2)',
+          padding: '6px 20px',
+          background: 'rgba(0, 0, 0, 0.25)',
           borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          gap: 8,
+          gap: 6,
+          flexShrink: 0,
         }}
       >
         <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-          View Format:
+          View:
         </span>
         <button
           onClick={() => setViewMode('html')}
@@ -250,6 +282,7 @@ export default function EmailDetail({
           style={{
             padding: '3px 8px',
             fontSize: 11,
+            minHeight: 26,
             background: viewMode === 'html' ? 'var(--bg-surface-active)' : 'transparent',
             color: viewMode === 'html' ? '#ffffff' : 'var(--text-muted)',
             border: '1px solid var(--border-subtle)',
@@ -265,6 +298,7 @@ export default function EmailDetail({
           style={{
             padding: '3px 8px',
             fontSize: 11,
+            minHeight: 26,
             background: viewMode === 'text' ? 'var(--bg-surface-active)' : 'transparent',
             color: viewMode === 'text' ? '#ffffff' : 'var(--text-muted)',
             border: '1px solid var(--border-subtle)',
@@ -276,7 +310,7 @@ export default function EmailDetail({
       </div>
 
       {/* Email Body Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: '#0a0e17' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(14px, 2.5vw, 24px)', background: '#0a0e17', WebkitOverflowScrolling: 'touch' }}>
         {viewMode === 'html' && hasHtml ? (
           <iframe
             title="Email Content"
@@ -285,6 +319,7 @@ export default function EmailDetail({
               <html>
                 <head>
                   <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
                   <style>
                     body {
                       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -298,7 +333,8 @@ export default function EmailDetail({
                     }
                     a { color: #818cf8; text-decoration: underline; }
                     img { max-width: 100%; height: auto; }
-                    pre, code { background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 4px; }
+                    pre, code { background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 4px; max-width: 100%; overflow-x: auto; }
+                    table { max-width: 100%; }
                   </style>
                 </head>
                 <body>${email.body_html}</body>
@@ -332,8 +368,8 @@ export default function EmailDetail({
         {email.attachments && email.attachments.length > 0 && (
           <div
             style={{
-              marginTop: 32,
-              paddingTop: 20,
+              marginTop: 28,
+              paddingTop: 18,
               borderTop: '1px solid var(--border-subtle)',
             }}
           >
@@ -342,7 +378,7 @@ export default function EmailDetail({
               <span>Attachments ({email.attachments.length})</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
               {email.attachments.map((att, idx) => (
                 <div
                   key={att.attachment_id || idx}
@@ -350,14 +386,14 @@ export default function EmailDetail({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '10px 14px',
+                    padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255, 255, 255, 0.03)',
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  <div style={{ minWidth: 0, marginRight: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ minWidth: 0, marginRight: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {att.filename}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -371,8 +407,9 @@ export default function EmailDetail({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: 12 }}
+                      style={{ padding: '5px 8px', fontSize: 12, minHeight: 30 }}
                       download={att.filename}
+                      title="Download file"
                     >
                       <Download size={14} />
                     </a>

@@ -5,12 +5,9 @@ import {
   Mail,
   MailOpen,
   Archive,
-  ChevronRight,
-  ChevronLeft,
   Search,
   Filter,
   RefreshCw,
-  Clock,
 } from 'lucide-react';
 
 export default function EmailList({
@@ -40,24 +37,28 @@ export default function EmailList({
       {/* Pane Header */}
       <div
         style={{
-          padding: '16px 18px',
+          padding: '12px 16px',
           borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'rgba(15, 23, 42, 0.5)',
+          flexShrink: 0,
+          gap: 8,
         }}
       >
-        <div>
-          <h2 style={{ fontSize: 16, fontWeight: 700, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>{searchQuery ? `Search: "${searchQuery}"` : folder}</span>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>
-              ({displayedEmails.length} {displayedEmails.length === 1 ? 'message' : 'messages'})
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {searchQuery ? `Search: "${searchQuery}"` : folder}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', flexShrink: 0 }}>
+              ({displayedEmails.length})
             </span>
           </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {/* Unread toggle */}
           <button
             onClick={() => setFilterUnreadOnly(!filterUnreadOnly)}
@@ -65,6 +66,8 @@ export default function EmailList({
             title={filterUnreadOnly ? 'Show all messages' : 'Filter unread only'}
             style={{
               padding: '6px 8px',
+              minWidth: 32,
+              minHeight: 32,
               fontSize: 12,
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-subtle)',
@@ -78,17 +81,17 @@ export default function EmailList({
             <button
               onClick={onEmptyTrash}
               className="btn btn-danger"
-              style={{ padding: '4px 10px', fontSize: 12 }}
+              style={{ padding: '4px 8px', fontSize: 12, minHeight: 30 }}
             >
               <Trash2 size={13} />
-              <span>Empty Trash</span>
+              <span>Empty</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Messages List Container */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {loading && emails.length === 0 ? (
           <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
             <RefreshCw size={24} className="spin" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--primary)' }} />
@@ -114,7 +117,7 @@ export default function EmailList({
                 key={email.id}
                 onClick={() => onSelectEmail(email)}
                 style={{
-                  padding: '14px 16px',
+                  padding: '12px 14px',
                   borderBottom: '1px solid var(--border-subtle)',
                   cursor: 'pointer',
                   background: isSelected
@@ -133,19 +136,19 @@ export default function EmailList({
                 onMouseEnter={(e) => {
                   if (!isSelected) e.currentTarget.style.background = 'var(--bg-surface-hover)';
                   const actions = e.currentTarget.querySelector('.hover-actions');
-                  if (actions) actions.style.opacity = '1';
+                  if (actions && window.innerWidth >= 768) actions.style.opacity = '1';
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected) {
                     e.currentTarget.style.background = isUnread ? 'rgba(255, 255, 255, 0.03)' : 'transparent';
                   }
                   const actions = e.currentTarget.querySelector('.hover-actions');
-                  if (actions) actions.style.opacity = '0';
+                  if (actions && window.innerWidth >= 768) actions.style.opacity = '0';
                 }}
               >
                 {/* Header row: From, Star, Date */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
                     {/* Star button */}
                     <button
                       type="button"
@@ -154,10 +157,10 @@ export default function EmailList({
                         onToggleStar(email);
                       }}
                       className="btn-icon"
-                      style={{ padding: 2, color: email.is_starred ? '#f59e0b' : 'var(--text-dim)' }}
+                      style={{ padding: 2, minWidth: 26, minHeight: 26, color: email.is_starred ? '#f59e0b' : 'var(--text-dim)' }}
                       title={email.is_starred ? 'Unstar' : 'Star'}
                     >
-                      <Star size={15} fill={email.is_starred ? '#f59e0b' : 'none'} />
+                      <Star size={14} fill={email.is_starred ? '#f59e0b' : 'none'} />
                     </button>
 
                     {/* Sender */}
@@ -190,7 +193,7 @@ export default function EmailList({
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    marginBottom: 4,
+                    marginBottom: 3,
                   }}
                 >
                   {email.subject || '(No Subject)'}
@@ -210,16 +213,16 @@ export default function EmailList({
                   {email.snippet}
                 </div>
 
-                {/* Floating Quick Actions on Hover */}
+                {/* Floating Quick Actions on Hover / Responsive */}
                 <div
                   className="hover-actions"
                   style={{
                     position: 'absolute',
-                    right: 12,
-                    bottom: 10,
+                    right: 10,
+                    bottom: 8,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: 3,
                     background: '#1e293b',
                     padding: '2px 4px',
                     borderRadius: 'var(--radius-sm)',
@@ -235,9 +238,9 @@ export default function EmailList({
                     }}
                     className="btn-icon"
                     title={email.is_read ? 'Mark as unread' : 'Mark as read'}
-                    style={{ padding: 4 }}
+                    style={{ padding: 4, minWidth: 24, minHeight: 24 }}
                   >
-                    {email.is_read ? <Mail size={13} /> : <MailOpen size={13} />}
+                    {email.is_read ? <Mail size={12} /> : <MailOpen size={12} />}
                   </button>
 
                   <button
@@ -247,9 +250,9 @@ export default function EmailList({
                     }}
                     className="btn-icon"
                     title="Archive"
-                    style={{ padding: 4 }}
+                    style={{ padding: 4, minWidth: 24, minHeight: 24 }}
                   >
-                    <Archive size={13} />
+                    <Archive size={12} />
                   </button>
 
                   <button
@@ -259,9 +262,9 @@ export default function EmailList({
                     }}
                     className="btn-icon"
                     title="Move to Trash"
-                    style={{ padding: 4, color: 'var(--rose)' }}
+                    style={{ padding: 4, minWidth: 24, minHeight: 24, color: 'var(--rose)' }}
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
@@ -274,18 +277,19 @@ export default function EmailList({
       {nextPageToken && (
         <div
           style={{
-            padding: '10px 16px',
+            padding: '8px 14px',
             borderTop: '1px solid var(--border-subtle)',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'rgba(15, 23, 42, 0.65)',
             display: 'flex',
             justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
           <button
             onClick={onLoadMore}
             disabled={loading}
             className="btn btn-secondary"
-            style={{ width: '100%', fontSize: 13 }}
+            style={{ width: '100%', fontSize: 13, height: 34 }}
           >
             {loading ? <RefreshCw size={14} className="spin" /> : <span>Load More Messages</span>}
           </button>

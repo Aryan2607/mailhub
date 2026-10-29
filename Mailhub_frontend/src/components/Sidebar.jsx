@@ -9,9 +9,10 @@ import {
   Trash2,
   PenSquare,
   Plus,
-  Unlink,
   Layers,
   Sparkles,
+  X,
+  Mail,
 } from 'lucide-react';
 
 const FOLDERS = [
@@ -36,14 +37,58 @@ export default function Sidebar({
   accountStats = null,
   userResume = null,
   onOpenResumeModal,
+  isOpen = false,
+  onClose,
 }) {
   return (
-    <aside className="app-sidebar">
+    <aside className={`app-sidebar ${isOpen ? 'sidebar-open' : ''}`}>
+      {/* Mobile Drawer Header Bar (Visible on mobile/tablet) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: 'var(--gradient-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Mail size={15} color="#ffffff" />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 800 }}>MailHub</span>
+        </div>
+
+        {/* Close Drawer Button */}
+        <button
+          className="btn-icon"
+          onClick={onClose}
+          title="Close Navigation"
+          aria-label="Close Navigation"
+          style={{ width: 32, height: 32 }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
       {/* Compose Button */}
-      <div style={{ padding: '16px 14px' }}>
+      <div style={{ padding: '16px 14px 10px' }}>
         <button
           className="btn btn-primary"
-          onClick={onOpenCompose}
+          onClick={() => {
+            onOpenCompose();
+            onClose?.();
+          }}
           disabled={!activeAccount}
           style={{
             width: '100%',
@@ -70,13 +115,16 @@ export default function Sidebar({
           return (
             <button
               key={f.id}
-              onClick={() => onSelectFolder(f.id)}
+              onClick={() => {
+                onSelectFolder(f.id);
+                onClose?.();
+              }}
               style={{
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '9px 12px',
+                padding: '10px 12px',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
                 background: isActive ? 'rgba(99, 102, 241, 0.16)' : 'transparent',
@@ -116,10 +164,13 @@ export default function Sidebar({
 
         {/* AI Resume Status Card */}
         <div
-          onClick={onOpenResumeModal}
+          onClick={() => {
+            onOpenResumeModal();
+            onClose?.();
+          }}
           style={{
             margin: '14px 4px 6px',
-            padding: '10px 12px',
+            padding: '12px',
             borderRadius: 'var(--radius-md)',
             background: userResume
               ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(99, 102, 241, 0.05))'
@@ -136,7 +187,7 @@ export default function Sidebar({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Sparkles size={14} color="var(--primary)" />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
                 AI Job Outreach
               </span>
             </div>
@@ -173,7 +224,7 @@ export default function Sidebar({
         {accountStats && (
           <div
             style={{
-              margin: '16px 4px',
+              margin: '14px 4px',
               padding: '12px',
               borderRadius: 'var(--radius-md)',
               background: 'rgba(255, 255, 255, 0.02)',
@@ -209,10 +260,13 @@ export default function Sidebar({
             <span>Accounts ({accounts.length})</span>
           </div>
           <button
-            onClick={onConnectAccount}
+            onClick={() => {
+              onConnectAccount();
+              onClose?.();
+            }}
             className="btn-icon"
             title="Connect another Gmail account"
-            style={{ padding: 2, color: 'var(--primary)' }}
+            style={{ padding: 2, minWidth: 28, minHeight: 28, color: 'var(--primary)' }}
           >
             <Plus size={16} />
           </button>
@@ -224,12 +278,15 @@ export default function Sidebar({
             return (
               <div
                 key={acc.id}
-                onClick={() => onSelectAccount(acc)}
+                onClick={() => {
+                  onSelectAccount(acc);
+                  onClose?.();
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '6px 8px',
+                  padding: '7px 8px',
                   borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
@@ -252,24 +309,6 @@ export default function Sidebar({
                     {acc.email_address}
                   </span>
                 </div>
-
-                {/* <button
-                  className="btn-icon"
-                  title="Disconnect account"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDisconnectAccount(acc);
-                  }}
-                  style={{
-                    padding: 3,
-                    opacity: 0.6,
-                    color: 'var(--rose)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.6)}
-                >
-                  <Unlink size={13} />
-                </button> */}
               </div>
             );
           })}

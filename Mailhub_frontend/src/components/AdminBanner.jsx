@@ -28,36 +28,37 @@ export default function AdminBanner({ onFilterUser, selectedUserId = null }) {
       style={{
         background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)',
         borderBottom: '1px solid rgba(245, 158, 11, 0.25)',
-        padding: collapsed ? '8px 20px' : '12px 20px',
+        padding: collapsed ? '6px 16px' : '10px 16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 8,
         zIndex: 40,
         transition: 'all 0.2s ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="admin-banner-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
           <div
             style={{
-              padding: '4px 8px',
+              padding: '3px 8px',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(245, 158, 11, 0.2)',
               color: '#fbbf24',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
+              gap: 5,
+              fontSize: 11,
               fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
+              whiteSpace: 'nowrap',
             }}
           >
-            <Shield size={14} />
-            <span>Admin Oversight Mode</span>
+            <Shield size={13} />
+            <span>Admin Oversight</span>
           </div>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            You have global administrative permission to read, compose, edit, trash, and delete emails across <b>all</b> users' connected accounts.
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            Administrative permission across <b>all</b> connected accounts.
           </span>
         </div>
 
@@ -70,48 +71,50 @@ export default function AdminBanner({ onFilterUser, selectedUserId = null }) {
             fontSize: 12,
             cursor: 'pointer',
             textDecoration: 'underline',
+            whiteSpace: 'nowrap',
           }}
         >
-          {collapsed ? 'Show Overview & Filters' : 'Hide Bar'}
+          {collapsed ? 'Show Stats & Filters' : 'Hide Bar'}
         </button>
       </div>
 
       {!collapsed && stats && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           {/* Quick Stats */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <Users size={16} color="var(--primary)" />
+          <div className="admin-banner-stats" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <Users size={15} color="var(--primary)" />
               <span style={{ color: 'var(--text-secondary)' }}>Users:</span>
               <strong style={{ color: '#ffffff' }}>{stats.total_users}</strong>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                ({stats.normal_users} normal, {stats.admin_users} admin)
+                ({stats.normal_users} user, {stats.admin_users} admin)
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <Mail size={16} color="var(--amber)" />
-              <span style={{ color: 'var(--text-secondary)' }}>Connected Gmail Accounts:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <Mail size={15} color="var(--amber)" />
+              <span style={{ color: 'var(--text-secondary)' }}>Accounts:</span>
               <strong style={{ color: '#ffffff' }}>{stats.total_connected_accounts}</strong>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <CheckCircle2 size={16} color="var(--emerald)" />
-              <span style={{ color: 'var(--text-secondary)' }}>Active Connections:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <CheckCircle2 size={15} color="var(--emerald)" />
+              <span style={{ color: 'var(--text-secondary)' }}>Active:</span>
               <strong style={{ color: '#ffffff' }}>{stats.active_connected_accounts}</strong>
             </div>
           </div>
 
           {/* User Filter Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Filter size={14} color="var(--text-muted)" />
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Filter by User:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: 'auto' }}>
+            <Filter size={13} color="var(--text-muted)" />
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Filter:</span>
             <select
-              className="input-field"
+              className="input-field admin-user-filter"
               value={selectedUserId || ''}
               onChange={(e) => onFilterUser(e.target.value ? Number(e.target.value) : null)}
               style={{
-                width: 220,
+                width: 200,
+                maxWidth: '100%',
                 padding: '4px 8px',
                 fontSize: 12,
                 height: 30,
@@ -119,7 +122,7 @@ export default function AdminBanner({ onFilterUser, selectedUserId = null }) {
                 borderColor: 'rgba(245, 158, 11, 0.3)',
               }}
             >
-              <option value="">All Users (Show All Accounts)</option>
+              <option value="">All Users (Show All)</option>
               {usersList.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.email} ({u.connected_accounts_count} accounts - {u.role})

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
 export default function ConfirmModal({
@@ -12,6 +12,17 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !loading) {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, loading, onCancel]);
+
   if (!isOpen) return null;
 
   return (
@@ -20,7 +31,8 @@ export default function ConfirmModal({
         className="glass-panel"
         style={{
           width: 440,
-          padding: 24,
+          maxWidth: '100%',
+          padding: 'clamp(18px, 4vw, 24px)',
           background: '#111827',
           borderColor: danger ? 'rgba(244, 63, 94, 0.4)' : 'var(--border-subtle)',
           boxShadow: 'var(--shadow-lg)',

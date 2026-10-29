@@ -13,6 +13,7 @@ import {
   X,
   FileText,
   Sparkles,
+  Menu,
 } from 'lucide-react';
 
 export default function Navbar({
@@ -28,6 +29,8 @@ export default function Navbar({
   onClearSearch,
   userResume = null,
   onOpenResumeModal,
+  sidebarOpen = false,
+  onToggleSidebar,
 }) {
   const { user, isAdmin, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -46,22 +49,41 @@ export default function Navbar({
 
   return (
     <header
+      className="navbar-header"
       style={{
         height: 'var(--header-height)',
-        background: 'rgba(13, 19, 31, 0.85)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(13, 19, 31, 0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 20px',
-        gap: 16,
+        padding: '0 18px',
+        gap: 12,
         zIndex: 50,
+        position: 'relative',
       }}
     >
       {/* Brand & Account Selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {/* Mobile Hamburger Drawer Toggle */}
+        <button
+          type="button"
+          className="btn-icon navbar-menu-toggle"
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? 'Close Menu' : 'Open Menu'}
+          aria-label="Toggle navigation menu"
+          style={{
+            display: 'none',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Brand Logo & Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <div
             style={{
               width: 34,
@@ -71,12 +93,23 @@ export default function Navbar({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px var(--primary-glow)',
+              boxShadow: '0 4px 14px var(--primary-glow)',
+              flexShrink: 0,
             }}
           >
             <Mail size={18} color="#ffffff" />
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em' }}>
+          <span
+            className="navbar-brand-title"
+            style={{
+              fontSize: 18,
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             MailHub
           </span>
         </div>
@@ -87,28 +120,32 @@ export default function Navbar({
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="btn btn-secondary"
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               height: 36,
               background: 'rgba(255, 255, 255, 0.04)',
               borderColor: 'var(--border-subtle)',
+              gap: 6,
             }}
           >
             {activeAccount ? (
               <>
                 <span className="pulse-dot" />
-                <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span
+                  className="navbar-account-text"
+                  style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
                   {activeAccount.email_address}
                 </span>
                 {isAdmin && activeAccount.user && activeAccount.user.email !== user?.email && (
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    ({activeAccount.user.email})
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }} className="navbar-account-owner">
+                    ({activeAccount.user.email.split('@')[0]})
                   </span>
                 )}
               </>
             ) : (
-              <span style={{ color: 'var(--text-muted)' }}>No Accounts Connected</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>No Accounts</span>
             )}
-            <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+            <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           </button>
 
           {dropdownOpen && (
@@ -118,7 +155,7 @@ export default function Navbar({
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 left: 0,
-                width: 320,
+                width: 'min(320px, calc(100vw - 24px))',
                 padding: 6,
                 background: '#111827',
                 boxShadow: 'var(--shadow-lg)',
@@ -139,7 +176,7 @@ export default function Navbar({
                   justifyContent: 'space-between',
                 }}
               >
-                <span>Connected Gmail Accounts</span>
+                <span>Gmail Accounts</span>
                 <span>{accounts.length} Total</span>
               </div>
 
@@ -233,22 +270,23 @@ export default function Navbar({
       </div>
 
       {/* Global Search Bar */}
-      <div style={{ flex: 1, maxWidth: 540 }}>
+      <div className="navbar-search-box" style={{ flex: 1, maxWidth: 520, minWidth: 0 }}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             onSearchSubmit();
           }}
-          style={{ position: 'relative' }}
+          style={{ position: 'relative', width: '100%' }}
         >
           <Search
-            size={16}
+            size={15}
             style={{
               position: 'absolute',
-              left: 14,
+              left: 12,
               top: '50%',
               transform: 'translateY(-50%)',
               color: 'var(--text-muted)',
+              pointerEvents: 'none',
             }}
           />
           <input
@@ -256,18 +294,19 @@ export default function Navbar({
             className="input-field"
             placeholder={
               activeAccount
-                ? `Search emails in ${activeAccount.email_address} (e.g. from:client, has:attachment)...`
-                : 'Select an account to search emails...'
+                ? `Search emails in ${activeAccount.email_address}...`
+                : 'Select an account to search...'
             }
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             disabled={!activeAccount}
             style={{
-              paddingLeft: 38,
-              paddingRight: searchQuery ? 36 : 14,
-              height: 38,
-              background: 'rgba(15, 23, 42, 0.6)',
+              paddingLeft: 36,
+              paddingRight: searchQuery ? 34 : 12,
+              height: 36,
+              background: 'rgba(15, 23, 42, 0.65)',
               fontSize: 13,
+              borderRadius: 'var(--radius-md)',
             }}
           />
           {searchQuery && (
@@ -277,11 +316,14 @@ export default function Navbar({
               className="btn-icon"
               style={{
                 position: 'absolute',
-                right: 8,
+                right: 6,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 padding: 4,
+                minWidth: 24,
+                minHeight: 24,
               }}
+              title="Clear search"
             >
               <X size={14} />
             </button>
@@ -290,7 +332,7 @@ export default function Navbar({
       </div>
 
       {/* User Info & Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {/* Refresh button */}
         <button
           className="btn-icon"
@@ -308,7 +350,7 @@ export default function Navbar({
           onClick={onOpenResumeModal}
           className="btn btn-secondary"
           style={{
-            padding: '5px 12px',
+            padding: '5px 10px',
             height: 36,
             background: userResume ? 'rgba(16, 185, 129, 0.08)' : 'rgba(99, 102, 241, 0.1)',
             borderColor: userResume ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.3)',
@@ -322,8 +364,8 @@ export default function Navbar({
           title={userResume ? `Resume: ${userResume.original_filename}. Click to manage.` : 'Upload resume for Gemini AI email generation'}
         >
           {userResume ? <FileText size={14} /> : <Sparkles size={14} />}
-          <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {userResume ? userResume.original_filename : 'Upload Resume'}
+          <span className="navbar-resume-text" style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {userResume ? userResume.original_filename : 'Resume'}
           </span>
           {userResume && (
             <span
@@ -332,6 +374,7 @@ export default function Navbar({
                 height: 6,
                 borderRadius: '50%',
                 background: 'var(--emerald)',
+                flexShrink: 0,
               }}
             />
           )}
@@ -342,36 +385,48 @@ export default function Navbar({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            padding: '4px 10px',
+            gap: 8,
+            padding: '4px 8px',
             borderRadius: 'var(--radius-md)',
             background: 'rgba(255, 255, 255, 0.04)',
             border: '1px solid var(--border-subtle)',
+            height: 36,
           }}
         >
           <div
             style={{
-              width: 26,
-              height: 26,
+              width: 24,
+              height: 24,
               borderRadius: '50%',
               background: isAdmin ? 'var(--gradient-admin)' : 'var(--gradient-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#ffffff',
+              flexShrink: 0,
             }}
           >
             {user?.email?.charAt(0).toUpperCase() || 'U'}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-              {user?.email}
-            </span>
-          </div>
+          <span
+            className="navbar-user-text"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              maxWidth: 120,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {user?.email}
+          </span>
 
-          <span className={`badge ${isAdmin ? 'badge-admin' : 'badge-user'}`}>
+          <span className={`badge ${isAdmin ? 'badge-admin' : 'badge-user'}`} style={{ padding: '2px 6px', fontSize: 10 }}>
             {isAdmin ? 'Admin' : 'User'}
           </span>
         </div>
