@@ -58,8 +58,8 @@ class EmailSendSerializer(serializers.Serializer):
         required=True,
     )
     subject = serializers.CharField(required=True, max_length=998)
-    body_text = serializers.CharField(required=False, allow_blank=True, default="")
-    body_html = serializers.CharField(required=False, allow_blank=True, default="")
+    body_text = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    body_html = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     cc = serializers.ListField(
         child=serializers.EmailField(),
         required=False,
@@ -70,7 +70,7 @@ class EmailSendSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
-    thread_id = serializers.CharField(required=False, allow_blank=True, default=None)
+    thread_id = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)
 
     def validate(self, attrs):
         if not attrs.get("body_text") and not attrs.get("body_html"):
@@ -80,8 +80,8 @@ class EmailSendSerializer(serializers.Serializer):
 
 class EmailReplySerializer(serializers.Serializer):
     """Payload for replying to an existing email."""
-    body_text = serializers.CharField(required=False, allow_blank=True, default="")
-    body_html = serializers.CharField(required=False, allow_blank=True, default="")
+    body_text = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    body_html = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     cc = serializers.ListField(
         child=serializers.EmailField(),
         required=False,
@@ -107,9 +107,9 @@ class EmailForwardSerializer(serializers.Serializer):
         allow_empty=False,
         required=True,
     )
-    subject = serializers.CharField(required=False, allow_blank=True)
-    body_text = serializers.CharField(required=False, allow_blank=True, default="")
-    body_html = serializers.CharField(required=False, allow_blank=True, default="")
+    subject = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    body_text = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    body_html = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     cc = serializers.ListField(
         child=serializers.EmailField(),
         required=False,

@@ -304,15 +304,15 @@ class EmailSendView(APIView):
         account = get_account_or_404(pk, request.user)
 
         # Parse To, CC, BCC whether passed as list or comma-separated string
-        to_data = request.data.get("to", [])
+        to_data = request.data.getlist("to") if hasattr(request.data, "getlist") and request.data.getlist("to") else request.data.get("to", [])
         if isinstance(to_data, str):
             to_data = [addr.strip() for addr in to_data.split(",") if addr.strip()]
 
-        cc_data = request.data.get("cc", [])
+        cc_data = request.data.getlist("cc") if hasattr(request.data, "getlist") and request.data.getlist("cc") else request.data.get("cc", [])
         if isinstance(cc_data, str):
             cc_data = [addr.strip() for addr in cc_data.split(",") if addr.strip()]
 
-        bcc_data = request.data.get("bcc", [])
+        bcc_data = request.data.getlist("bcc") if hasattr(request.data, "getlist") and request.data.getlist("bcc") else request.data.get("bcc", [])
         if isinstance(bcc_data, str):
             bcc_data = [addr.strip() for addr in bcc_data.split(",") if addr.strip()]
 
@@ -323,7 +323,7 @@ class EmailSendView(APIView):
             "subject": request.data.get("subject", ""),
             "body_text": request.data.get("body_text", ""),
             "body_html": request.data.get("body_html", ""),
-            "thread_id": request.data.get("thread_id"),
+            "thread_id": None if not request.data.get("thread_id") or str(request.data.get("thread_id")).strip().lower() in ("null", "none", "undefined", "") else str(request.data.get("thread_id")).strip(),
         }
 
         serializer = EmailSendSerializer(data=data)
@@ -417,11 +417,11 @@ class EmailForwardView(APIView):
 
     def post(self, request, pk, message_id):
         account = get_account_or_404(pk, request.user)
-        to_data = request.data.get("to", [])
+        to_data = request.data.getlist("to") if hasattr(request.data, "getlist") and request.data.getlist("to") else request.data.get("to", [])
         if isinstance(to_data, str):
             to_data = [addr.strip() for addr in to_data.split(",") if addr.strip()]
 
-        cc_data = request.data.get("cc", [])
+        cc_data = request.data.getlist("cc") if hasattr(request.data, "getlist") and request.data.getlist("cc") else request.data.get("cc", [])
         if isinstance(cc_data, str):
             cc_data = [addr.strip() for addr in cc_data.split(",") if addr.strip()]
 
