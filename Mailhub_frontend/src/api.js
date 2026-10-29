@@ -123,6 +123,10 @@ export const authApi = {
     return user;
   },
 
+  getPendingEvents: async () => {
+    return apiRequest('/auth/events/pending/');
+  },
+
   logout: async () => {
     try {
       const refresh = getRefreshToken();
@@ -258,12 +262,31 @@ export const adminApi = {
   getUsers: async () => {
     return apiRequest('/auth/admin/users/');
   },
+  sendWebSocketEvent: async (userId, { event_type = 'NOTIFICATION', title, message, image_url, data = {} }) => {
+    return apiRequest(`/auth/admin/users/${userId}/send-event/`, {
+      method: 'POST',
+      body: JSON.stringify({ event_type, title, message, image_url, data }),
+    });
+  },
+  getCapturedImages: async (userId = null, search = '') => {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    if (search) params.append('search', search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/auth/admin/images/${qs}`);
+  },
+  deleteCapturedImage: async (imageId) => {
+    return apiRequest(`/auth/images/${imageId}/`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ----------------- Resume APIs -----------------
 export const resumeApi = {
-  getResume: async () => {
-    return apiRequest('/auth/resume/');
+  getResume: async (userIdFilter = null) => {
+    const query = userIdFilter ? `?user_id=${userIdFilter}` : '';
+    return apiRequest(`/auth/resume/${query}`);
   },
   uploadResume: async (file) => {
     const formData = new FormData();
@@ -278,8 +301,9 @@ export const resumeApi = {
       method: 'DELETE',
     });
   },
-  getDownloadUrl: () => {
-    return `${API_BASE}/auth/resume/download/`;
+  getDownloadUrl: (userIdFilter = null) => {
+    const query = userIdFilter ? `?user_id=${userIdFilter}` : '';
+    return `${API_BASE}/auth/resume/download/${query}`;
   },
 };
 

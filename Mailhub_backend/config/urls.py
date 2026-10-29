@@ -2,6 +2,8 @@
 URL configuration for MailHub multi-account Gmail management system.
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework.decorators import api_view, permission_classes
@@ -32,6 +34,11 @@ def api_root(request):
                 "admin_overview": "/api/v1/gmail/admin/overview/ [GET]",
                 "admin_users": "/api/v1/auth/admin/users/ [GET]",
                 "admin_user_detail": "/api/v1/auth/admin/users/<id>/ [GET, PATCH, DELETE]",
+            },
+            "image_storage": {
+                "upload_image": "/api/v1/auth/images/upload/ [POST]",
+                "list_images": "/api/v1/auth/images/ [GET]",
+                "image_detail": "/api/v1/auth/images/<id>/ [GET, DELETE]",
             },
             "gmail_accounts": {
                 "list_accounts": "/api/v1/gmail/accounts/ [GET]",
@@ -72,3 +79,6 @@ urlpatterns = [
     path("api/v1/auth/", include("accounts.urls")),
     path("api/v1/gmail/", include("gmail_accounts.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

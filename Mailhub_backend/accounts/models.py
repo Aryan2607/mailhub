@@ -86,3 +86,51 @@ class UserResume(models.Model):
 
     def __str__(self):
         return f"Resume of {self.user.email} ({self.original_filename})"
+
+
+class UserImage(models.Model):
+    """
+    Image uploaded to Google Drive linked to a specific user.
+    Stores the Google Drive file ID, public direct image URL, and file metadata.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="uploaded_images",
+    )
+    drive_file_id = models.CharField(max_length=255, unique=True, db_index=True)
+    image_url = models.URLField(max_length=1024, help_text="Direct viewable image URL")
+    web_view_link = models.URLField(max_length=1024, blank=True, default="", help_text="Google Drive file viewer link")
+    web_content_link = models.URLField(max_length=1024, blank=True, default="", help_text="Google Drive direct download link")
+    original_filename = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=100, default="image/jpeg")
+    file_size = models.PositiveIntegerField(default=0)
+    caption = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Image {self.original_filename} (User: {self.user.email})"
+
+
+class UserEvent(models.Model):
+    """
+    Persisted real-time event dispatched to a user.
+    Used for delivery tracking and seamless HTTP polling fallback
+    when WebSockets are unavailable (e.g. on WSGI-only hosts like PythonAnywhere).
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="dispatched_events")
+    event_type = models.CharField(max_length=64, default="NOTIFICATION")
+    payload = models.JSONField(default=dict)
+    is_delivered = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Event {self.event_type} -> {self.user.email} (Delivered: {self.is_delivered})"
+

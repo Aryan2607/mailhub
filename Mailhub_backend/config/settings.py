@@ -26,6 +26,8 @@ else:
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third party packages
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -73,6 +76,28 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Channels Configuration: Redis in production, InMemory for local development
+REDIS_URL = os.getenv('REDIS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
+
+# Support SSL termination proxies in production (Nginx, Cloudflare, AWS ALB)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Database configuration: PostgreSQL if configured, otherwise SQLite for seamless development
 DB_NAME = os.getenv('DB_NAME')

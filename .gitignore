@@ -122,3 +122,4 @@ backend/requirements.txt
 .claude/
 Mailhub_backend/config/client_secret_330337093787-tt0cqm9llgrpq9f0lov8k5rrq6m4kstu.apps.googleusercontent.com.json
 Mailhub_backend/db.sqlite3
+Mailhub_backend/config/lucifer-43ef2-6fcdd9012109.json

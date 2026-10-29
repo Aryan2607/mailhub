@@ -14,7 +14,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 
-export default function ResumeModal({ isOpen, onClose, onResumeUpdated }) {
+export default function ResumeModal({ isOpen, onClose, onResumeUpdated, userId = null, targetUser = null }) {
   const [resumeData, setResumeData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -38,12 +38,12 @@ export default function ResumeModal({ isOpen, onClose, onResumeUpdated }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, uploading, deleting, onClose]);
+  }, [isOpen, uploading, deleting, onClose, userId]);
 
   const fetchResume = async () => {
     setLoading(true);
     try {
-      const data = await resumeApi.getResume();
+      const data = await resumeApi.getResume(userId);
       if (data.has_resume) {
         setResumeData(data.resume);
       } else {

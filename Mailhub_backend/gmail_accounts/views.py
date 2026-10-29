@@ -617,8 +617,12 @@ class AdminOverviewView(APIView):
             users_list.append({
                 "id": u.id,
                 "email": u.email,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
                 "role": u.role,
                 "is_active": u.is_active,
+                "date_joined": u.date_joined.isoformat() if u.date_joined else None,
+                "has_resume": hasattr(u, "resume"),
                 "connected_accounts_count": u.gmail_accounts.count(),
                 "connected_accounts": [
                     {"id": acc.id, "email": acc.email_address, "is_active": acc.is_active}

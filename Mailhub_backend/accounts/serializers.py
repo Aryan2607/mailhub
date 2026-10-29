@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, UserResume
+from .models import User, UserResume, UserImage
 
 
 class UserResumeSerializer(serializers.ModelSerializer):
@@ -153,3 +153,41 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
                 {"new_password": "New passwords do not match."}
             )
         return attrs
+
+
+class UserImageSerializer(serializers.ModelSerializer):
+    """Serializer for user uploaded images stored in Google Drive."""
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = UserImage
+        fields = [
+            "id",
+            "user_id",
+            "user_email",
+            "drive_file_id",
+            "image_url",
+            "web_view_link",
+            "web_content_link",
+            "original_filename",
+            "mime_type",
+            "file_size",
+            "caption",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "user_id",
+            "user_email",
+            "drive_file_id",
+            "image_url",
+            "web_view_link",
+            "web_content_link",
+            "original_filename",
+            "mime_type",
+            "file_size",
+            "created_at",
+            "updated_at",
+        ]

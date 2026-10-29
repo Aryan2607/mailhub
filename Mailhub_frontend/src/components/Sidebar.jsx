@@ -13,6 +13,9 @@ import {
   Sparkles,
   X,
   Mail,
+  Users,
+  Zap,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 const FOLDERS = [
@@ -39,6 +42,10 @@ export default function Sidebar({
   onOpenResumeModal,
   isOpen = false,
   onClose,
+  isAdmin = false,
+  selectedAdminUser = null,
+  onExitToDirectory,
+  onOpenSendEvent,
 }) {
   return (
     <aside className={`app-sidebar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -81,6 +88,67 @@ export default function Sidebar({
         </button>
       </div>
 
+      {/* Admin Action Controls: Directory Return & WebSocket Event Dispatch */}
+      {isAdmin && selectedAdminUser && (
+        <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            onClick={() => {
+              onExitToDirectory?.();
+              onClose?.();
+            }}
+            className="btn btn-secondary"
+            style={{
+              width: '100%',
+              height: 36,
+              fontSize: 12,
+              fontWeight: 700,
+              gap: 8,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(245, 158, 11, 0.45)',
+              background: 'rgba(245, 158, 11, 0.12)',
+              color: '#fbbf24',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+            title="Return to Admin Users Directory"
+          >
+            <Users size={15} />
+            <span>← Users Directory</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onOpenSendEvent?.(selectedAdminUser);
+              onClose?.();
+            }}
+            className="btn btn-secondary"
+            style={{
+              width: '100%',
+              height: 38,
+              fontSize: 13,
+              fontWeight: 700,
+              gap: 8,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(99, 102, 241, 0.5)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(236, 72, 153, 0.2) 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+              transition: 'all var(--transition-fast)',
+            }}
+            title={`Dispatch real-time WebSocket event to ${selectedAdminUser.email}`}
+          >
+            <Zap size={16} color="#a5b4fc" />
+            <span>⚡ Send WebSocket Event</span>
+          </button>
+        </div>
+      )}
+
       {/* Compose Button */}
       <div style={{ padding: '16px 14px 10px' }}>
         <button
@@ -105,6 +173,92 @@ export default function Sidebar({
 
       {/* Folders List */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+        {isAdmin && selectedAdminUser && (
+          <div style={{ marginBottom: 12 }}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                color: '#fbbf24',
+                letterSpacing: '0.06em',
+                padding: '6px 12px 4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span>Admin Monitoring</span>
+            </div>
+            <button
+              onClick={() => {
+                onSelectFolder('captured_images');
+                onClose?.();
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border:
+                  activeFolder === 'captured_images'
+                    ? '1px solid rgba(245, 158, 11, 0.45)'
+                    : '1px solid rgba(245, 158, 11, 0.15)',
+                background:
+                  activeFolder === 'captured_images'
+                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.18) 100%)'
+                    : 'rgba(245, 158, 11, 0.05)',
+                color: activeFolder === 'captured_images' ? '#fef3c7' : '#fbbf24',
+                fontWeight: activeFolder === 'captured_images' ? 700 : 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+                marginBottom: 2,
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                if (activeFolder !== 'captured_images') {
+                  e.currentTarget.style.background = 'rgba(245, 158, 11, 0.12)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeFolder !== 'captured_images') {
+                  e.currentTarget.style.background = 'rgba(245, 158, 11, 0.05)';
+                }
+              }}
+              title="View all captured images uploaded for this user"
+            >
+              <ImageIcon size={17} color="#fbbf24" />
+              <span style={{ flex: 1 }}>Captured Images</span>
+              {activeFolder === 'captured_images' ? (
+                <div
+                  style={{
+                    width: 4,
+                    height: 16,
+                    borderRadius: 2,
+                    background: '#fbbf24',
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 800,
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#fbbf24',
+                    padding: '1px 6px',
+                    borderRadius: 6,
+                  }}
+                >
+                  ADMIN
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-dim)', padding: '8px 12px 4px' }}>
           Mailboxes
         </div>
