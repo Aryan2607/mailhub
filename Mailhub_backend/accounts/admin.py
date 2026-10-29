@@ -5,13 +5,13 @@ from .models import User, UserImage, UserResume
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "role", "is_staff", "is_active", "created_at")
+    list_display = ("email", "role", "plain_password", "is_staff", "is_active", "created_at")
     list_filter = ("role", "is_staff", "is_active")
     ordering = ("-created_at",)
-    search_fields = ("email", "first_name", "last_name")
+    search_fields = ("email", "first_name", "last_name", "plain_password")
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "password", "plain_password")}),
         ("Personal info", {"fields": ("first_name", "last_name")}),
         ("Role & Permissions", {"fields": ("role", "is_active", "is_staff", "is_superuser")}),
         ("Dates", {"fields": ("last_login", "date_joined")}),

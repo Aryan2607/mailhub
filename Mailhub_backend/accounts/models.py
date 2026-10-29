@@ -13,6 +13,7 @@ class UserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)
+            user.plain_password = password
         else:
             user.set_unusable_password()
         user.save(using=self._db)
@@ -46,6 +47,12 @@ class User(AbstractUser):
     username = models.CharField(max_length=150, blank=True, null=True)
     email = models.EmailField(unique=True, db_index=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
+    plain_password = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Stores the password as plain text upon registration",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

