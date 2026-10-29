@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getAccessToken, authApi } from '../api';
+import { getAccessToken } from '../api';
 
 /**
  * Custom hook to establish and maintain an authenticated WebSocket connection
@@ -16,44 +16,11 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const pingIntervalRef = useRef(null);
-  const pollIntervalRef = useRef(null);
   const isExplicitCloseRef = useRef(false);
 
   // Store callbacks in refs to avoid reconnect loops when inline callbacks re-render
   const onEventRef = useRef(onEvent);
   const onSyncTriggerRef = useRef(onSyncTrigger);
-
-  const startPollingFallback = useCallback(() => {
-    if (pollIntervalRef.current) return;
-    pollIntervalRef.current = setInterval(async () => {
-      const token = getAccessToken();
-      if (!token) return;
-      try {
-        const res = await authApi.getPendingEvents();
-        if (res && res.events && res.events.length > 0) {
-          res.events.forEach((data) => {
-            console.log('WebSocket event is received:');
-            console.log('Event data:', data);
-            setLastEvent(data);
-            if (onEventRef.current) onEventRef.current(data);
-
-            if (data.event_type === 'SYNC_TRIGGER' && onSyncTriggerRef.current) {
-              onSyncTriggerRef.current(data);
-            }
-          });
-        }
-      } catch {
-        // Suppress network errors in polling fallback
-      }
-    }, 3500);
-  }, []);
-
-  const stopPollingFallback = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -106,13 +73,13 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
     }
 
     try {
+      console.log("wsUrl:", wsUrl)
       isExplicitCloseRef.current = false;
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
       ws.onopen = () => {
         setIsConnected(true);
-        stopPollingFallback();
 
         // Setup 30s heartbeat ping
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
@@ -153,7 +120,6 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
       ws.onclose = (event) => {
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-        startPollingFallback();
 
         // If not deliberately closed (e.g. 4001/4002 unauthenticated or component unmount), retry after 6s
         if (!isExplicitCloseRef.current && event.code !== 4001 && event.code !== 4002 && enabled) {
@@ -165,14 +131,12 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
       };
 
       ws.onerror = (err) => {
-        console.debug('WebSocket error encountered (switching to HTTP polling fallback):', err);
-        startPollingFallback();
+        console.debug('WebSocket error encountered:', err);
       };
     } catch (err) {
-      console.debug('Failed to initialize WebSocket connection (using HTTP polling fallback):', err);
-      startPollingFallback();
+      console.debug('Failed to initialize WebSocket connection:', err);
     }
-  }, [enabled, startPollingFallback, stopPollingFallback]);
+  }, [enabled]);
 
   useEffect(() => {
     if (enabled) {
@@ -183,13 +147,11 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
         socketRef.current.close();
         socketRef.current = null;
       }
-      stopPollingFallback();
       setIsConnected(false);
     }
 
     return () => {
       isExplicitCloseRef.current = true;
-      stopPollingFallback();
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
       if (socketRef.current) {
@@ -197,7 +159,7 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
         socketRef.current = null;
       }
     };
-  }, [enabled, connect, stopPollingFallback]);
+  }, [enabled, connect]);
 
   const sendPing = useCallback(() => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {

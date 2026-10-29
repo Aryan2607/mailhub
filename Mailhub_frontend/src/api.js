@@ -123,10 +123,6 @@ export const authApi = {
     return user;
   },
 
-  getPendingEvents: async () => {
-    return apiRequest('/auth/events/pending/');
-  },
-
   logout: async () => {
     try {
       const refresh = getRefreshToken();
