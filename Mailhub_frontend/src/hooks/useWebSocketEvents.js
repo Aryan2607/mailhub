@@ -10,17 +10,23 @@ import { getAccessToken } from '../api';
  * @param {Function} options.onSyncTrigger Callback when a SYNC_TRIGGER event arrives
  * @param {boolean} options.enabled Whether the socket should be actively connected
  */
-export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = {}) {
+export function useWebSocketEvents({ user = null, onEvent, onSyncTrigger, enabled = true } = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState(null);
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
   const pingIntervalRef = useRef(null);
   const isExplicitCloseRef = useRef(false);
 
-  // Store callbacks in refs to avoid reconnect loops when inline callbacks re-render
+  // Store user & callbacks in refs to avoid reconnect loops when inline callbacks re-render
+  const userRef = useRef(user);
   const onEventRef = useRef(onEvent);
   const onSyncTriggerRef = useRef(onSyncTrigger);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -29,6 +35,12 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
   useEffect(() => {
     onSyncTriggerRef.current = onSyncTrigger;
   }, [onSyncTrigger]);
+
+  const getUserTag = useCallback(() => {
+    const u = userRef.current;
+    if (!u) return '[User]';
+    return `[${u.role || 'USER'}: ${u.email || 'unknown'}]`;
+  }, []);
 
   const connect = useCallback(() => {
     const token = getAccessToken();
@@ -72,14 +84,29 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
       wsUrl = `${wsProtocol}//${wsHost}/ws/events/?token=${encodeURIComponent(token)}`;
     }
 
+    const tag = getUserTag();
+    console.log(`%c[WebSocket] ${tag} Attempting connection to:`, 'color: #38bdf8; font-weight: bold;', wsUrl);
+
+    if (wsUrl.includes('pythonanywhere.com')) {
+      console.warn(
+        `%c[WebSocket Warning] ${tag} PythonAnywhere uses WSGI and does not support persistent WebSockets (ASGI). WebSockets require Daphne/Uvicorn (e.g. Render, Railway, or VPS).`,
+        'color: #f59e0b; font-weight: 600;'
+      );
+    }
+
     try {
-      console.log("wsUrl:", wsUrl)
       isExplicitCloseRef.current = false;
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
       ws.onopen = () => {
         setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+        console.log(
+          `%c[WebSocket Connected] ${tag} Connected successfully!`,
+          'color: #10b981; font-weight: bold; background: rgba(16, 185, 129, 0.1); padding: 2px 6px; border-radius: 4px;',
+          wsUrl
+        );
 
         // Setup 30s heartbeat ping
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
@@ -121,22 +148,36 @@ export function useWebSocketEvents({ onEvent, onSyncTrigger, enabled = true } = 
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
-        // If not deliberately closed (e.g. 4001/4002 unauthenticated or component unmount), retry after 6s
+        console.warn(
+          `%c[WebSocket Disconnected] ${tag} Connection closed:`,
+          'color: #f59e0b; font-weight: bold;',
+          wsUrl,
+          `(Code: ${event.code}${event.reason ? `, Reason: ${event.reason}` : ''})`
+        );
+
+        // Back off reconnect if host doesn't support WebSockets or fails repeatedly
         if (!isExplicitCloseRef.current && event.code !== 4001 && event.code !== 4002 && enabled) {
+          reconnectAttemptsRef.current += 1;
+          const delay = Math.min(30000, 4000 + reconnectAttemptsRef.current * 3000);
+
           if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, 6000);
+          }, delay);
         }
       };
 
       ws.onerror = (err) => {
-        console.debug('WebSocket error encountered:', err);
+        console.error(
+          `%c[WebSocket Error] ${tag} Connection failed:`,
+          'color: #ef4444; font-weight: bold;',
+          wsUrl
+        );
       };
     } catch (err) {
-      console.debug('Failed to initialize WebSocket connection:', err);
+      console.error(`%c[WebSocket Init Failed] ${tag}`, 'color: #ef4444; font-weight: bold;', wsUrl, err);
     }
-  }, [enabled]);
+  }, [enabled, getUserTag]);
 
   useEffect(() => {
     if (enabled) {

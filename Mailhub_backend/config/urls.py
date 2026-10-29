@@ -5,10 +5,28 @@ URL configuration for MailHub multi-account Gmail management system.
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+
+def ws_fallback_view(request):
+    """
+    Fallback HTTP handler when an HTTP/WSGI server (e.g. PythonAnywhere)
+    receives a request for /ws/events/ instead of an ASGI server (Daphne).
+    Returns 426 (Upgrade Required) with an informative diagnostic message.
+    """
+    return JsonResponse(
+        {
+            "status": "error",
+            "code": 426,
+            "message": "WebSocket connection requires an ASGI server (Daphne/Uvicorn). Standard WSGI web servers (like PythonAnywhere) do not support persistent WebSockets.",
+            "hint": "Run Daphne via 'daphne config.asgi:application' or deploy backend on an ASGI-compatible platform.",
+        },
+        status=426,
+    )
 
 
 @api_view(["GET"])
@@ -78,6 +96,7 @@ urlpatterns = [
     path("api/v1/", api_root, name="api-root"),
     path("api/v1/auth/", include("accounts.urls")),
     path("api/v1/gmail/", include("gmail_accounts.urls")),
+    path("ws/events/", ws_fallback_view, name="ws-fallback"),
 ]
 
 if settings.DEBUG:

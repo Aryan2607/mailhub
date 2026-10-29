@@ -235,6 +235,7 @@ export default function App() {
   }, [activeAccount, loadEmails, searchQuery]);
 
   const { isConnected: wsConnected, sendGetImage, sendStopGetImage } = useWebSocketEvents({
+    user,
     enabled: !!user,
     onEvent: handleWsEvent,
     onSyncTrigger: handleWsSyncTrigger,
