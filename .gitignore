@@ -84,8 +84,8 @@ pnpm-debug.log*
 # =========================
 # Django Migrations
 # =========================
-**/migrations/
-!**/migrations/__init__.py
+# **/migrations/
+# !**/migrations/__init__.py
 
 # =========================
 # Python Cache
